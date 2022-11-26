@@ -85,7 +85,7 @@ def load_training_data(folder_dir, n=100):
     """
     img_dir = folder_dir + "images/"
     files = os.listdir(img_dir)
-    n = min(n, len(files))  # Load maximum 20 images
+    n = min(n, len(files))  
     print("Loading " + str(n) + " images")
     imgs = [load_image(img_dir + files[i]) for i in range(n)]
 
