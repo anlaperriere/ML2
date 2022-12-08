@@ -1,28 +1,30 @@
 import argparse
-
 import datasets
 from models import UNet
 from torch.utils.data import DataLoader
 from helpers import *
 import ast
+import segmentation_models_pytorch as smp
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', type=str, default='./data',
+parser.add_argument('--path', type=str, default='../data',
                     help="Dataset path")
 parser.add_argument('--model', type=str, default="UNet",
-                    help="Selects the model. Acceptable values: 'UNet'")
+                    help="Selects the model. Acceptable values: 'UNet' or 'ResNet50'")
 parser.add_argument('--validation_ratio', type=float, default=None,
                     help="The ratio of validation dataset size to the whole dataset. \
                     If not set then there will be no validation and the whole dataset is used for training")
 parser.add_argument('--rotate', type=ast.literal_eval, default=True,
-                    help="Do rotate while training")
+                    help="Random rotations while training")
 parser.add_argument('--flip', type=ast.literal_eval, default=True,
-                    help="Do flip while training")
-parser.add_argument('--resize', type=int, default=None,
-                    help="The resize value for test images")
+                    help="Random flips while training")
+parser.add_argument('--grayscale', type=ast.literal_eval, default=False,
+                    help="Random grayscale while training")
 parser.add_argument('--random_crops', type=int, default=0,
                     help="Number of random crops for data augmentation")
+parser.add_argument('--resize', type=int, default=None,
+                    help="The new size for train and validation images.")
 parser.add_argument('--batch_size', type=int, default=8,
                     help="The batch size for the training")
 parser.add_argument('--cuda', type=ast.literal_eval, default=True,
@@ -49,7 +51,7 @@ parser.add_argument('--loss', type=str, default="dice",
 def main(args):
     
     # Ensure reproducibility
-    seed = 42
+    seed = 5
     random.seed(seed)
     torch.manual_seed(seed)
     torch.backends.cudnn.benchmark = False
@@ -61,8 +63,9 @@ def main(args):
         path=args.path, set_type='train',
         ratio=ratio, rotate=args.rotate,
         flip=args.flip,
-        resize=args.resize,
+        grayscale=args.grayscale,
         random_crops=args.random_crops,
+        resize=args.resize,
     )
     test_dataset = datasets.DatasetTest(path=args.path)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -75,12 +78,21 @@ def main(args):
             ratio=ratio,
             rotate=args.rotate,
             flip=args.flip,
+            grayscale=args.grayscale,
             resize=args.resize)
         val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
 
     # Model initialization
     if args.model == 'UNet':
         model = UNet(input_channels=3, output_channels=1)
+    elif args.model == "ResNet50":
+        model = smp.Unet(
+            encoder_name="resnet50",
+            encoder_weights="imagenet",
+            in_channels=3,
+            classes=1,
+            activation="sigmoid",
+        )
     else:
         raise Exception("The given model does not exist.")
     model = model.cuda() if args.cuda else model
@@ -136,7 +148,6 @@ def main(args):
                 train_loss.append(loss.item())
                 train_f1.append(f1_score)
                 train_f1_patches.append(f1_patches)
-
             # Saving the loss and the scores of training for this epoch
             save_track(
                 experiment_path,
@@ -149,6 +160,7 @@ def main(args):
             # Validation
             if args.validation_ratio:
                 model.eval()
+                best_loss = 1.0
                 val_loss = []
                 val_f1 = []
                 val_f1_patches = []
@@ -186,7 +198,9 @@ def main(args):
                 print("Epoch : {} | No validation".format(epoch))
 
             # Saving the weights
-            if args.save_weights:
+            if args.save_weights and val_loss_to_track < best_loss:
+                best_loss = val_loss_to_track
+                print('Model_saved at epoch {}'.format(epoch))
                 save_model(model, optimizer, experiment_path, args)
 
     # Testing
@@ -222,7 +236,7 @@ if __name__ == '__main__':
             raise Exception("GPU not available. Set --cuda False to run with CPU.")
     if args.validation_ratio > 0.8 or args.validation_ratio < 0:
         raise Exception("Validation ratio is not acceptable. Please enter a value between 0 and 0.8.")
-    if args.model not in ('UNet'):
+    if args.model not in ('UNet', 'ResNet50'):
         raise Exception("The given model does not exist.")
     if args.loss not in ('dice', 'cross entropy', 'dice + cross entropy', 'dice_patches'):
         raise Exception("The given loss function does not exist.\
