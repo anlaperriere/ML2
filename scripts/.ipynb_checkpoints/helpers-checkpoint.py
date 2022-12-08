@@ -1,95 +1,219 @@
-import matplotlib.image as mpimg
+import math
+import os
+import re
+import torch
+import torch.nn.functional as functional
 import numpy as np
-import matplotlib.pyplot as plt
-import os, sys
-
-def load_image(infilename):
-    data = mpimg.imread(infilename)
-    return data
-
-
-def img_float_to_uint8(img):
-    rimg = img - np.min(img)
-    rimg = (rimg / np.max(rimg) * 255).round().astype(np.uint8)
-    return rimg
+import pandas as pd
+import matplotlib.image as mpimg
+import PIL.Image as Image
+from sklearn.metrics import f1_score
+import random
 
 
-# Concatenate an image and its groundtruth
-def concatenate_images(img, gt_img):
-    nChannels = len(gt_img.shape)
-    w = gt_img.shape[0]
-    h = gt_img.shape[1]
-    if nChannels == 3:
-        cimg = np.concatenate((img, gt_img), axis=1)
+# Model loading and saving
+def load_model(model, opti, args):
+    """
+    To load pretrained model weights and optimizer states
+    """
+
+    checkpoint = torch.load(args.weight_path, map_location=torch.device('cuda' if args.cuda else 'cpu'))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    opti.load_state_dict(checkpoint['optimizer_state_dict'])
+
+
+def save_model(model, opti, path, args):
+    """
+    To save trained model and optimizer states
+    """
+
+    save_path = os.path.join(path, args.experiment_name + '.pt')
+    torch.save({
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": opti.state_dict(),
+    }, save_path)
+
+
+# Loss computation
+# Dice loss derived from https://github.com/mateuszbuda/brain-segmentation-pytorch/blob/master/loss.py
+def dice_loss(output, mask, smooth=1.0):
+    """
+    To compute the dice loss
+    """
+
+    output = output[:, 0].contiguous().view(-1)
+    mask = mask[:, 0].contiguous().view(-1)
+    intersection = (output * mask).sum()
+    dsc = (2. * intersection + smooth) / (output.sum() + mask.sum() + smooth)
+    return 1. - dsc
+
+
+def create_folder(path):
+    """
+    To create a new folder
+    """
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def save_image(output, idx, path, threshold=0.5):
+    """
+    Thresholds the output and ...TODO...
+        ouput : torch tensor, with values ranging from 0 to 1 (sigmoid probabilities)
+    
+    """
+    labels = (output > threshold).squeeze().cpu().numpy()
+    img = Image.fromarray((labels * 255).astype(np.uint8))
+    img.save(os.path.join(path, 'satImage_{:03d}.png'.format(idx)))
+
+
+def save_image_overlap(output, img, idx, path):
+    """
+    Highlights the predicted roads on the image and saves it.
+    """
+    labels = (output > 0.5).cpu().numpy().squeeze()
+    img = img.cpu().numpy().squeeze() * 255
+    img[2, labels] = 150
+    img = np.transpose(img, (1, 2, 0)).astype('uint8')
+    img = Image.fromarray(img.astype(np.uint8), 'RGB')
+    img.save(os.path.join(path, 'satImage_overlap_{:03d}.png'.format(idx)))
+
+
+foreground_threshold = 0.25  # percentage of pixels > 1 required to assign a foreground label to a patch
+
+
+def mask_to_patches(im):
+    """
+    Convert an image into the patches used by the submission format.
+    """
+    patch_size = 16
+    x = len(im.shape) - 2
+    y = len(im.shape) - 1
+    # pad image
+    out0 = math.ceil(im.shape[x] / patch_size)
+    out1 = math.ceil(im.shape[y] / patch_size)
+    pad0 = out0 - im.shape[x] // patch_size
+    pad1 = out1 - im.shape[y] // patch_size
+    padded = functional.pad(im, (0, 0, 0, 0, 0, pad0, 0, pad1), value=foreground_threshold)
+    # convert to patches
+    patches = padded.unfold(x, patch_size, patch_size).unfold(y, patch_size, patch_size)
+    # apply threshold
+    return torch.mean(patches.float(), dim=(x + 2, y + 2))
+
+
+def random_erase(img, n=1, scale=(0, 0.1), rgb=(.5, .5, .5)):
+    """
+    Erase random rectangles from the image.
+        img: torch.tensor
+        n: number of rectangles
+        scale: range of width and height with respect to the size of the image
+        rgb: color of the rectangle
+    """
+
+    for _ in range(n):
+        c = (random.randint(0, img.shape[1]), random.randint(0, img.shape[2]))
+        h = round(img.shape[1] * (scale[0] + random.random() * scale[1]))
+        w = round(img.shape[2] * (scale[0] + random.random() * scale[1]))
+        if rgb == 'noise':
+            for i in range(c[0] - h, c[0]):
+                for j in range(c[1] - w, c[1]):
+                    img[0, i, j] = random.random()
+                    img[1, i, j] = random.random()
+                    img[2, i, j] = random.random()
+        else:
+            img[0, c[0] - h:c[0], c[1] - w:c[1]] = rgb[0]
+            img[1, c[0] - h:c[0], c[1] - w:c[1]] = rgb[1]
+            img[2, c[0] - h:c[0], c[1] - w:c[1]] = rgb[2]
+    return img
+
+
+def get_score_patches(output, mask, threshold=foreground_threshold):
+    """
+    Calculate F1 score of the prediction, grouping by patches first.
+    """
+    output_patches = mask_to_patches(output)
+    mask_patches = mask_to_patches(mask)
+    output_labels = output_patches > threshold
+    mask_labels = mask_patches > threshold
+    mask_ = np.reshape(mask_labels.cpu().numpy(), (mask.shape[0], -1))
+    labels_ = np.reshape(output_labels.cpu().numpy(), (output.shape[0], -1))
+    # Calculating f1_score
+    f_score = f1_score(mask_, labels_, average='macro', zero_division=0)
+
+    return f_score
+
+
+def get_score(output, mask, threshold=0.5):
+    """
+    Calculate F1 score of the prediction
+    """
+    labels_ = output > threshold
+    mask_ = np.reshape(mask.cpu().numpy(), (mask.shape[0], -1))
+    labels_ = np.reshape(labels_.cpu().numpy(), (labels_.shape[0], -1))
+    # Calculating f1_score
+    f_score = f1_score(mask_, labels_, average='macro', zero_division=0)
+
+    return f_score
+
+
+# assign a label to a patch
+def patch_to_label(patch):
+    df = np.mean(patch)
+    if df > foreground_threshold:
+        return 1
     else:
-        gt_img_3c = np.zeros((w, h, 3), dtype=np.uint8)
-        gt_img8 = img_float_to_uint8(gt_img)
-        gt_img_3c[:, :, 0] = gt_img8
-        gt_img_3c[:, :, 1] = gt_img8
-        gt_img_3c[:, :, 2] = gt_img8
-        img8 = img_float_to_uint8(img)
-        cimg = np.concatenate((img8, gt_img_3c), axis=1)
-    return cimg
+        return 0
 
 
-def img_crop(im, w, h):
-    list_patches = []
-    imgwidth = im.shape[0]
-    imgheight = im.shape[1]
-    is_2d = len(im.shape) < 3
-    for i in range(0, imgheight, h):
-        for j in range(0, imgwidth, w):
-            if is_2d:
-                im_patch = im[j : j + w, i : i + h]
-            else:
-                im_patch = im[j : j + w, i : i + h, :]
-            list_patches.append(im_patch)
-    return list_patches
-
-
-def extract_features(img):
+def mask_to_submission_strings(image_filename):
     """
-    Extract 6-dimensional features consisting of average RGB color as well as variance
+    Reads a single image and outputs the strings that should go into the submission file
     """
-    feat_m = np.mean(img, axis=(0, 1))
-    feat_v = np.var(img, axis=(0, 1))
-    feat = np.append(feat_m, feat_v)
-    return feat
+    img_number = int(re.search(r"\d+", image_filename).group(0))
+    im = mpimg.imread(image_filename)
+    patch_size = 16
+    for j in range(0, im.shape[1], patch_size):
+        for i in range(0, im.shape[0], patch_size):
+            patch = im[i:i + patch_size, j:j + patch_size]
+            label = patch_to_label(patch)
+            yield "{:03d}_{}_{},{}".format(img_number, j, i, label)
 
 
-def extract_features_2d(img):
+def masks_to_submission(submission_filename, *image_filenames):
     """
-    Extract 2-dimensional features consisting of average gray color as well as variance
+    Converts images into a submission file
     """
-    feat_m = np.mean(img)
-    feat_v = np.var(img)
-    feat = np.append(feat_m, feat_v)
-    return feat
+    with open(submission_filename, 'w') as f:
+        f.write('id,prediction\n')
+        for fn in image_filenames[0:]:
+            f.writelines('{}\n'.format(s) for s in mask_to_submission_strings(fn))
 
 
-def extract_img_features(filename):
-    """
-    Extract features for a given image
-    """
-    img = load_image(filename)
-    img_patches = img_crop(img, patch_size, patch_size)
-    X = np.asarray(
-        [extract_features_2d(img_patches[i]) for i in range(len(img_patches))]
-    )
-    return X
+cols = {'train': {'loss': [], 'f1-score': [], 'f1_patch': []}, 
+        'val': {'loss': [], 'f1-score': [], 'f1_patch': []}}
 
 
-def load_training_data(folder_dir, n=100):
+def save_track(path, args, train_loss=None, train_f1=None, train_f1_patch=None, val_loss=None, val_f1=None,
+               val_f1_patch=None):
     """
-    Loads all the training files
+    Saves the result of the epoch in the corresponding file.
     """
-    img_dir = folder_dir + "images/"
-    files = os.listdir(img_dir)
-    n = min(n, len(files))  # Load maximum 20 images
-    print("Loading " + str(n) + " images")
-    imgs = [load_image(img_dir + files[i]) for i in range(n)]
+    if train_loss is not None:
+        cols['train']['loss'].append(train_loss)
+    if train_f1 is not None:
+        cols['train']['f1-score'].append(train_f1)
+    if train_f1_patch is not None:
+        cols['train']['f1_patch'].append(train_f1_patch)
 
-    gnd_dir = folder_dir + "groundtruth/"
-    print("Loading " + str(n) + " images")
-    gnd_imgs = [load_image(gnd_dir + files[i]) for i in range(n)]
-    return imgs, gnd_imgs
+    if val_loss is not None:
+        cols['val']['loss'].append(val_loss)
+    if val_f1 is not None:
+        cols['val']['f1-score'].append(val_f1)
+    if val_f1_patch is not None:
+        cols['val']['f1_patch'].append(val_f1_patch)
+
+    df = pd.DataFrame.from_dict(cols['train'])
+    df.to_csv(os.path.join(path, args.experiment_name + "_train_tracking.csv"))
+
+    df = pd.DataFrame.from_dict(cols['val'])
+    df.to_csv(os.path.join(path, args.experiment_name + "_val_tracking.csv"))    
