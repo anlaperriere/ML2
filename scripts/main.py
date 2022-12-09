@@ -27,8 +27,8 @@ parser.add_argument('--resize', type=int, default=None,
                     help="The new size for train and validation images.")
 parser.add_argument('--batch_size', type=int, default=8,
                     help="The batch size for the training")
-parser.add_argument('--cuda', type=ast.literal_eval, default=True,
-                    help="If True then the model uses gpu for the training")
+parser.add_argument('--device', type=str, default="cpu",
+                    help="If mps or cuda, gpu is used for training. Otherwise, training is performed on cpu.")
 parser.add_argument('--lr', type=float, default=0.001,
                     help="The learning rate value")
 parser.add_argument('--weight_path', type=str, default=None,
@@ -42,7 +42,7 @@ parser.add_argument('--test', type=ast.literal_eval, default=True,
 parser.add_argument('--epochs', type=int, default=100,
                     help="Number of epoch")
 parser.add_argument('--save_weights', type=bool, default=False,
-                    help="If true then the weights are saved in each epoch")
+                    help="If true the weights are saved, only for the epochs where the model achieves a better validation losses")
 parser.add_argument('--loss', type=str, default="dice",
                     help="Selects the loss type. \
                     The accepted values are 'dice', 'cross entropy' and 'dice + cross entropy'")
@@ -95,7 +95,12 @@ def main(args):
         )
     else:
         raise Exception("The given model does not exist.")
-    model = model.cuda() if args.cuda else model
+    
+    # Training on GPU if available
+    if args.device == "cuda" and torch.cuda.is_available():
+        model = model.cuda()
+    elif args.device == "mps" and torch.backends.mps.is_available():
+        model = model.to("mps")
 
     # Optimizer initialization
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
@@ -108,7 +113,7 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-7)
 
     # Creating the experiment path
-    experiment_path = os.path.join('./experiments', args.experiment_name)
+    experiment_path = os.path.join('../experiments', args.experiment_name)
     create_folder(experiment_path)
 
     # Loss function initialization
@@ -116,10 +121,16 @@ def main(args):
         criterion = dice_loss
     elif args.loss == 'cross entropy':
         criterion = torch.nn.BCELoss(reduction='mean')
-        criterion = criterion.cuda() if args.cuda else criterion
+        if args.device == "cuda" and torch.cuda.is_available():
+            criterion = criterion.cuda()
+        elif args.device == "mps" and torch.backends.mps.is_available():
+            criterion = criterion.to("mps")
     elif args.loss == 'dice + cross entropy':
         ce = torch.nn.BCELoss(reduction='mean')
-        ce = ce.cuda() if args.cuda else ce
+        if args.device == "cuda" and torch.cuda.is_available():
+            ce = ce.cuda()
+        elif args.device == "mps" and torch.backends.mps.is_available():
+            ce = ce.to("mps")
         criterion = lambda output_, mask_: ce(output_, mask_) + dice_loss(output_, mask_)
     else:
         raise Exception("The given loss function does not exist.")
@@ -133,9 +144,15 @@ def main(args):
             train_f1 = []
             train_f1_patches = []
             for img, mask in train_loader:
-
-                img = img.cuda().float() if args.cuda else img.float()
-                mask = mask.cuda() if args.cuda else mask
+                
+                if args.device == "cuda" and torch.cuda.is_available():
+                    img = img.cuda().float()
+                    mask = mask.cuda()
+                elif args.device == "mps" and torch.backends.mps.is_available():
+                    img = img.to("mps").float()
+                    mask = mask.to("mps")
+                else:
+                    img = img.float()
 
                 optimizer.zero_grad()
 
@@ -166,8 +183,15 @@ def main(args):
                 val_f1_patches = []
                 with torch.no_grad():
                     for img, mask in val_loader:
-                        img = img.cuda().float() if args.cuda else img.float()
-                        mask = mask.cuda() if args.cuda else mask
+                    
+                        if args.device == "cuda" and torch.cuda.is_available():
+                            img = img.cuda().float()
+                            mask = mask.cuda()
+                        elif args.device == "mps" and torch.backends.mps.is_available():
+                            img = img.to("mps").float()
+                            mask = mask.to("mps")
+                        else:
+                            img = img.float()
 
                         output = model(img)
                         loss = criterion(output, mask)
@@ -194,14 +218,16 @@ def main(args):
 
                 # Reducing learning rate in case val_loss_to_track does not decrease based on the given patience
                 scheduler.step(val_loss_to_track)
+
+                    # Saving the weights
+                if args.save_weights and val_loss_to_track < best_loss:
+                    print(best_loss)
+                    best_loss = val_loss_to_track
+                    print('Model_saved at epoch {}'.format(epoch))
+                    save_model(model, optimizer, experiment_path, args)
+
             else:
                 print("Epoch : {} | No validation".format(epoch))
-
-            # Saving the weights
-            if args.save_weights and val_loss_to_track < best_loss:
-                best_loss = val_loss_to_track
-                print('Model_saved at epoch {}'.format(epoch))
-                save_model(model, optimizer, experiment_path, args)
 
     # Testing
     if args.test:
@@ -210,12 +236,17 @@ def main(args):
         model.eval()
         with torch.no_grad():
             for i, img in enumerate(test_loader):
-                img = img.cuda().float() if args.cuda else img.float()
-                output = model(img)
+                    if args.device == "cuda" and torch.cuda.is_available():
+                        img = img.cuda().float()
+                    elif args.device == "mps" and torch.backends.mps.is_available():
+                        img = img.to("mps").float()
+                    else:
+                        img = img.float()
 
-                # Saving the output masks
-                save_image(output, i + 1, results_path)
-                save_image_overlap(output, img, i + 1, results_path)
+                    output = model(img)
+                    # Saving the output masks
+                    save_image(output, i + 1, results_path)
+                    save_image_overlap(output, img, i + 1, results_path)
 
         # Converting the saved masks to a submission file
         submission_filename = os.path.join(results_path, args.experiment_name + '.csv')
@@ -231,9 +262,9 @@ if __name__ == '__main__':
 
     # Getting and validating the arguments
     args = parser.parse_args()
-    if args.cuda:
-        if not torch.cuda.is_available():
-            raise Exception("GPU not available. Set --cuda False to run with CPU.")
+    # if args.cuda:
+    #     if not torch.cuda.is_available():
+    #         raise Exception("GPU not available. Set --cuda False to run with CPU.")
     if args.validation_ratio > 0.8 or args.validation_ratio < 0:
         raise Exception("Validation ratio is not acceptable. Please enter a value between 0 and 0.8.")
     if args.model not in ('UNet', 'ResNet50'):
