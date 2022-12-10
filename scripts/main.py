@@ -138,6 +138,9 @@ def main(args):
     # Training
     if args.train:
         best_loss = 1.0
+        best_epoch = 0
+        best_f1_val = 0
+        best_f1_train = 0
         for epoch in range(args.epochs):
             model.train()
             train_loss = []
@@ -219,15 +222,19 @@ def main(args):
                 # Reducing learning rate in case val_loss_to_track does not decrease based on the given patience
                 scheduler.step(val_loss_to_track)
 
-                    # Saving the weights
+                # Saving the weights
                 if args.save_weights and val_loss_to_track < best_loss:
-                    print(best_loss)
                     best_loss = val_loss_to_track
+                    best_epoch = epoch
+                    best_f1_val = val_f1_to_track
+                    best_f1_train = train_f1[-1]
                     print('Model_saved at epoch {}'.format(epoch))
                     save_model(model, optimizer, experiment_path, args)
 
             else:
                 print("Epoch : {} | No validation".format(epoch))
+        
+        print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f} and val_f1 = {:.4f}".format(best_epoch, best_f1_train, best_f1_val))
 
     # Testing
     if args.test:
