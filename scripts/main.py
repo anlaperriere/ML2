@@ -28,7 +28,7 @@ parser.add_argument('--resize', type=int, default=None,
 parser.add_argument('--batch_size', type=int, default=8,
                     help="The batch size for the training")
 parser.add_argument('--device', type=str, default="cpu",
-                    help="If mps or cuda, gpu is used for training. Otherwise, training is performed on cpu.)
+                    help="If mps or cuda, gpu is used for training. Otherwise, training is performed on cpu.")
 parser.add_argument('--lr', type=float, default=0.001,
                     help="The learning rate value")
 parser.add_argument('--weight_path', type=str, default=None,
@@ -138,6 +138,9 @@ def main(args):
     # Training
     if args.train:
         best_loss = 1.0
+        best_epoch = 0
+        best_f1_val = 0
+        best_f1_train = 0
         for epoch in range(args.epochs):
             model.train()
             train_loss = []
@@ -178,7 +181,6 @@ def main(args):
             # Validation
             if args.validation_ratio:
                 model.eval()
-                best_loss = 1.0
                 val_loss = []
                 val_f1 = []
                 val_f1_patches = []
@@ -219,14 +221,20 @@ def main(args):
 
                 # Reducing learning rate in case val_loss_to_track does not decrease based on the given patience
                 scheduler.step(val_loss_to_track)
+
+                # Saving the weights
+                if args.save_weights and val_loss_to_track < best_loss:
+                    best_loss = val_loss_to_track
+                    best_epoch = epoch
+                    best_f1_val = val_f1_to_track
+                    best_f1_train = train_f1[-1]
+                    print('Model_saved at epoch {}'.format(epoch))
+                    save_model(model, optimizer, experiment_path, args)
+
             else:
                 print("Epoch : {} | No validation".format(epoch))
-
-            # Saving the weights
-            if args.save_weights and val_loss_to_track < best_loss:
-                best_loss = val_loss_to_track
-                print('Model_saved at epoch {}'.format(epoch))
-                save_model(model, optimizer, experiment_path, args)
+        
+        print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f} and val_f1 = {:.4f}".format(best_epoch, best_f1_train, best_f1_val))
 
     # Testing
     if args.test:
@@ -242,11 +250,10 @@ def main(args):
                     else:
                         img = img.float()
 
-                output = model(img)
-
-                # Saving the output masks
-                save_image(output, i + 1, results_path)
-                save_image_overlap(output, img, i + 1, results_path)
+                    output = model(img)
+                    # Saving the output masks
+                    save_image(output, i + 1, results_path)
+                    save_image_overlap(output, img, i + 1, results_path)
 
         # Converting the saved masks to a submission file
         submission_filename = os.path.join(results_path, args.experiment_name + '.csv')
