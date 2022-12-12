@@ -18,16 +18,12 @@ def load_model(model, opti, args):
     """
     if args.device == "cuda" and torch.cuda.is_available():
         checkpoint = torch.load(args.weight_path, map_location=torch.device('cuda'))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        opti.load_state_dict(checkpoint['optimizer_state_dict'])
     elif args.device == "mps" and torch.backends.mps.is_available():
         checkpoint = torch.load(args.weight_path, map_location=torch.device('mps'))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        opti.load_state_dict(checkpoint['optimizer_state_dict'])
     else:
         checkpoint = torch.load(args.weight_path, map_location=torch.device('cpu'))
-        model.load_state_dict(checkpoint['model_state_dict'])
-        opti.load_state_dict(checkpoint['optimizer_state_dict'])
+    model.load_state_dict(checkpoint['model_state_dict'])
+    opti.load_state_dict(checkpoint['optimizer_state_dict'])
 
 
 def save_model(model, opti, path, args):
@@ -224,3 +220,4 @@ def save_track(path, args, train_loss=None, train_f1=None, train_f1_patch=None, 
     df.to_csv(os.path.join(path, args.experiment_name + "_train_tracking.csv"))
 
     df = pd.DataFrame.from_dict(cols['val'])
+    df.to_csv(os.path.join(path, args.experiment_name + "_val_tracking.csv"))    
