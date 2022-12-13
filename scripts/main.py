@@ -227,17 +227,18 @@ def main(args):
                 if args.save_weights and val_loss_to_track < best_loss:
                     best_loss = val_loss_to_track
                     best_epoch = epoch
-                    best_f1_val = val_f1_to_track
-                    best_f1_train = train_f1[-1]
+                    best_f1_val = val_f1_patches_to_track
+                    best_f1_train = train_f1_patches[-1]
                     print('Model_saved at epoch {}'.format(epoch))
                     save_model(model, optimizer, experiment_path, args)
 
             else:
                 print("Epoch : {} | No validation".format(epoch))
-        
-        print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f} and val_f1= {:.4f}".format(
-            best_epoch, best_f1_train, best_f1_val)
-        )
+                save_model(model, optimizer, experiment_path, args)
+
+        if ratio > 0:
+            print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f}"
+                  "and val_f1= {:.4f}".format(best_epoch, best_f1_train, best_f1_val))
 
     # If weights path was not specified, load the best model obtained after the current training
     if not args.weights_path:
