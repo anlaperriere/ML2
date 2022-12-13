@@ -1,51 +1,64 @@
 import argparse
 import datasets
-from models import UNet
+import segmentation_models_pytorch as smp
+from model import UNet
 from torch.utils.data import DataLoader
 from helpers import *
-import ast
-import segmentation_models_pytorch as smp
 
-# Arguments
+# Arguments provided by user
 parser = argparse.ArgumentParser()
-parser.add_argument('--path', type=str, default='../data',
-                    help="Dataset path")
-parser.add_argument('--model', type=str, default="UNet",
-                    help="Selects the model. Acceptable values: 'UNet' or 'ResNet50'")
-parser.add_argument('--validation_ratio', type=float, default=None,
-                    help="The ratio of validation dataset size to the whole dataset. \
-                    If not set then there will be no validation and the whole dataset is used for training")
-parser.add_argument('--rotate', type=ast.literal_eval, default=True,
-                    help="Random rotations while training")
-parser.add_argument('--flip', type=ast.literal_eval, default=True,
-                    help="Random flips while training")
-parser.add_argument('--grayscale', type=ast.literal_eval, default=False,
-                    help="Random grayscale while training")
-parser.add_argument('--random_crops', type=int, default=0,
-                    help="Number of random crops for data augmentation")
-parser.add_argument('--resize', type=int, default=None,
-                    help="The new size for train and validation images.")
-parser.add_argument('--batch_size', type=int, default=8,
-                    help="The batch size for the training")
+# Paths
+parser.add_argument('--experiment_name', type=str, default="Unidentified_Experiment",
+                    help="Specify the name of the current experiment."
+                         "It will be used to create a folder to save the results.")
+parser.add_argument('--data_path', type=str, default='../data',
+                    help="Specify the path of the images dataset from the current location.")
+# Training
 parser.add_argument('--device', type=str, default="cpu",
-                    help="If mps or cuda, gpu is used for training. Otherwise, training is performed on cpu.")
+                    help="If you want to use a GPU, specify whether it is 'cuda' or 'mps'. Otherwise, CPU is used.")
+
+parser.add_argument('--model', type=str, default="UNet",
+                    help="Specify the model. Valid entries: 'UNet' or 'ResNet50'")
+parser.add_argument('--train', type=bool, default=True,
+                    help="Specify if you want to train the model. Valid entries: True or False")
+parser.add_argument('--validation_ratio', type=float, default=0,
+                    help="Specify the ratio of data used for validation compared to the whole dataset."
+                         "If 0 then all the images are used for training. Valid entries: a number between 0 and 0.5")
+parser.add_argument('--batch_size', type=int, default=8,
+                    help="Specify the batch size used for training. Valid entries: an integer number")
 parser.add_argument('--lr', type=float, default=0.001,
-                    help="The learning rate value")
-parser.add_argument('--weight_path', type=str, default=None,
-                    help="The path to saved weights. if not specified there will be no weight loaded")
-parser.add_argument('--experiment_name', type=str, default="NotSpec",
-                    help="The name of the experiment")
-parser.add_argument('--train', type=ast.literal_eval, default=True,
-                    help="If true then training is done")
-parser.add_argument('--test', type=ast.literal_eval, default=True,
-                    help="If true then test is done")
-parser.add_argument('--epochs', type=int, default=100,
-                    help="Number of epoch")
-parser.add_argument('--save_weights', type=bool, default=False,
-                    help="If true the weights are saved, only for the epochs where the model achieves a better validation losses")
+                    help="Specify the learning rate value. Valid entries: a number between 0 and 1")
 parser.add_argument('--loss', type=str, default="dice",
-                    help="Selects the loss type. \
-                    The accepted values are 'dice', 'cross entropy' and 'dice + cross entropy'")
+                    help="Specify the loss function to use."
+                         "Valid entries: 'dice' or 'cross entropy' or 'dice + cross entropy'")
+parser.add_argument('--epochs', type=int, default=100,
+                    help="Specify the number of epochs the model will be trained on.")
+parser.add_argument('--save_weights', type=bool, default=False,
+                    help="Specify if you want to save the weights of the trained model. They are progressively saved"
+                         "only for the epochs where the model achieves a better validation losses."
+                         "Valid entries: True or False")
+parser.add_argument('--resize', type=int, default=None,
+                    help="If you want to resize images for the training, specify the new size."
+                         "Valid entries: an integer number multiple of 32")
+# Data augmentation
+parser.add_argument('--rotation', type=bool, default=False,
+                    help="Specify if you want to augment the data for the training by doing random rotations."
+                         "Valid entries: True or False")
+parser.add_argument('--flip', type=bool, default=False,
+                    help="Specify if you want to augment the data for the training by doing random horizontal"
+                         "and vertical flips. Valid entries: True or False")
+parser.add_argument('--grayscale', type=bool, default=False,
+                    help="Specify if you want to augment the data for the training by randomly gray-scaling images."
+                         "Valid entries: True or False")
+parser.add_argument('--crops', type=int, default=0,
+                    help="Specify how many random crops will be made to augment the data for the training."
+                         "Valid entries: an integer number. If you don't want any, enter 0.")
+# Testing
+parser.add_argument('--test', type=bool, default=True,
+                    help="Specify if you want to test the model. Valid entries: True or False")
+parser.add_argument('--weights_path', type=str, default=None,
+                    help="If you want to test a beforehand trained model, specify the path to the saved weights from"
+                         "the current location.")
 
 
 def main(args):
@@ -57,26 +70,37 @@ def main(args):
     torch.backends.cudnn.benchmark = False
     torch.use_deterministic_algorithms(True)
 
+    # Processing unit
+    if args.device == "cuda" and torch.cuda.is_available():
+        device = "cuda"
+    elif args.device == "mps" and torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+
     # Dataset initialization
-    ratio = args.validation_ratio if args.validation_ratio else 0
+    ratio = args.validation_ratio
+
     train_dataset = datasets.DatasetTrainVal(
-        path=args.path, set_type='train',
-        ratio=ratio, rotate=args.rotate,
+        path=args.data_path,
+        set_type='train',
+        ratio=ratio,
+        rotate=args.rotation,
         flip=args.flip,
         grayscale=args.grayscale,
-        random_crops=args.random_crops,
+        random_crops=args.crops,
         resize=args.resize,
     )
-    test_dataset = datasets.DatasetTest(path=args.path)
+    test_dataset = datasets.DatasetTest(path=args.data_path)
     train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
-    if args.validation_ratio:
+    if ratio > 0:
         val_dataset = datasets.DatasetTrainVal(
-            path=args.path,
+            path=args.data_path,
             set_type='val',
             ratio=ratio,
-            rotate=args.rotate,
+            rotate=args.rotation,
             flip=args.flip,
             grayscale=args.grayscale,
             resize=args.resize)
@@ -97,16 +121,13 @@ def main(args):
         raise Exception("The given model does not exist.")
     
     # Training on GPU if available
-    if args.device == "cuda" and torch.cuda.is_available():
-        model = model.cuda()
-    elif args.device == "mps" and torch.backends.mps.is_available():
-        model = model.to("mps")
+    model = model.to(device)
 
     # Optimizer initialization
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
 
     # Loading state dict for weights and optimizer state
-    if args.weight_path:
+    if args.weights_path:
         load_model(model, optimizer, args)
 
     # Scheduler initialization for reduction of learning rate during the training
@@ -121,16 +142,10 @@ def main(args):
         criterion = dice_loss
     elif args.loss == 'cross entropy':
         criterion = torch.nn.BCELoss(reduction='mean')
-        if args.device == "cuda" and torch.cuda.is_available():
-            criterion = criterion.cuda()
-        elif args.device == "mps" and torch.backends.mps.is_available():
-            criterion = criterion.to("mps")
+        criterion = criterion.to(device)
     elif args.loss == 'dice + cross entropy':
         ce = torch.nn.BCELoss(reduction='mean')
-        if args.device == "cuda" and torch.cuda.is_available():
-            ce = ce.cuda()
-        elif args.device == "mps" and torch.backends.mps.is_available():
-            ce = ce.to("mps")
+        ce = ce.to(device)
         criterion = lambda output_, mask_: ce(output_, mask_) + dice_loss(output_, mask_)
     else:
         raise Exception("The given loss function does not exist.")
@@ -147,15 +162,9 @@ def main(args):
             train_f1 = []
             train_f1_patches = []
             for img, mask in train_loader:
-                
-                if args.device == "cuda" and torch.cuda.is_available():
-                    img = img.cuda().float()
-                    mask = mask.cuda()
-                elif args.device == "mps" and torch.backends.mps.is_available():
-                    img = img.to("mps").float()
-                    mask = mask.to("mps")
-                else:
-                    img = img.float()
+
+                img = img.to(device).float()
+                mask = mask.to(device)
 
                 optimizer.zero_grad()
 
@@ -179,23 +188,15 @@ def main(args):
             )
 
             # Validation
-            if args.validation_ratio:
+            if ratio > 0:
                 model.eval()
                 val_loss = []
                 val_f1 = []
                 val_f1_patches = []
                 with torch.no_grad():
                     for img, mask in val_loader:
-                    
-                        if args.device == "cuda" and torch.cuda.is_available():
-                            img = img.cuda().float()
-                            mask = mask.cuda()
-                        elif args.device == "mps" and torch.backends.mps.is_available():
-                            img = img.to("mps").float()
-                            mask = mask.to("mps")
-                        else:
-                            img = img.float()
-
+                        img = img.to(device).float()
+                        mask = mask.to(device)
                         output = model(img)
                         loss = criterion(output, mask)
                         f1_score, f1_patches = get_score(output, mask), get_score_patches(output, mask)
@@ -234,8 +235,21 @@ def main(args):
             else:
                 print("Epoch : {} | No validation".format(epoch))
         
-        print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f} and val_f1 = {:.4f}".format(best_epoch, best_f1_train, best_f1_val))
+        print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f} and val_f1= {:.4f}".format(
+            best_epoch, best_f1_train, best_f1_val)
+        )
 
+    # If weights path was not specified, load the best model obtained after the current training
+    if not args.weights_path:
+        if args.train:
+            if args.save_weights:
+                load_model(model, optimizer, args, os.path.join(experiment_path, args.experiment_name + '.pt'))
+            else:
+                print("Weight path was not specified nor saved after the training."
+                      "Therefore testing is performed on the model at the last epoch, which might not be optimal")
+        else:
+            print("Weight path was not specified and no training was performed."
+                  "Therefore testing is performed but doesn't use a trained model.")
     # Testing
     if args.test:
         results_path = os.path.join(experiment_path, 'results')
@@ -243,17 +257,13 @@ def main(args):
         model.eval()
         with torch.no_grad():
             for i, img in enumerate(test_loader):
-                    if args.device == "cuda" and torch.cuda.is_available():
-                        img = img.cuda().float()
-                    elif args.device == "mps" and torch.backends.mps.is_available():
-                        img = img.to("mps").float()
-                    else:
-                        img = img.float()
 
-                    output = model(img)
-                    # Saving the output masks
-                    save_image(output, i + 1, results_path)
-                    save_image_overlap(output, img, i + 1, results_path)
+                img = img.to(device).float()
+
+                output = model(img)
+                # Saving the output masks
+                save_image(output, i + 1, results_path)
+                save_image_overlap(output, img, i + 1, results_path)
 
         # Converting the saved masks to a submission file
         submission_filename = os.path.join(results_path, args.experiment_name + '.csv')
@@ -267,17 +277,44 @@ def main(args):
 
 if __name__ == '__main__':
 
-    # Getting and validating the arguments
+    # Getting the arguments
     args = parser.parse_args()
-    # if args.cuda:
-    #     if not torch.cuda.is_available():
-    #         raise Exception("GPU not available. Set --cuda False to run with CPU.")
-    if args.validation_ratio > 0.8 or args.validation_ratio < 0:
-        raise Exception("Validation ratio is not acceptable. Please enter a value between 0 and 0.8.")
-    if args.model not in ('UNet', 'ResNet50'):
-        raise Exception("The given model does not exist.")
-    if args.loss not in ('dice', 'cross entropy', 'dice + cross entropy', 'dice_patches'):
-        raise Exception("The given loss function does not exist.\
-        Acceptable losses: 'dice', 'cross entropy', 'dice + cross entropy', 'dice_patches'")
-    
+    # Validating the arguments
+    if args.device == "cuda":
+        if not torch.cuda.is_available():
+            print("You asked for GPU but it is not available. CPU is used instead.")
+    if args.device == "mps":
+        if not torch.backends.mps.is_available():
+            print("You asked for GPU but it is not available. CPU is used instead.")
+    if args.device not in ("cuda", "mps", "cpu"):
+        raise Exception("Select an appropriate processing unit. You can type help if you don't understand.")
+    if args.model not in ("UNet", "Resnet50"):
+        raise Exception("Select an appropriate model. You can type help if you don't understand.")
+    if args.train not in (True, False):
+        raise Exception("Select an appropriate train option. You can type help if you don't understand.")
+    if args.validation_ratio > 0.5 or args.validation_ratio < 0:
+        raise Exception("Select an appropriate validation ratio. You can type help if you don't understand.")
+    if args.batch_size < 0:
+        raise Exception("Select an appropriate batch size. You can type help if you don't understand.")
+    if args.lr > 1 or args.lr < 0:
+        raise Exception("Select an appropriate learning rate. You can type help if you don't understand.")
+    if args.loss not in ('dice', 'cross entropy', 'dice + cross entropy'):
+        raise Exception("Select an appropriate loss function. You can type help if you don't understand.")
+    if args.epochs < 0:
+        raise Exception("Select an appropriate number of epochs. You can type help if you don't understand.")
+    if args.save_weights not in (True, False):
+        raise Exception("Select an appropriate weights saving option. You can type help if you don't understand.")
+    if args.resize < 0 or args.resize % 32 != 0:
+        raise Exception("Select an appropriate size for image resizing. You can type help if you don't understand.")
+    if args.rotation not in (True, False):
+        raise Exception("Select an appropriate rotation option. You can type help if you don't understand.")
+    if args.flip not in (True, False):
+        raise Exception("Select an appropriate flip option. You can type help if you don't understand.")
+    if args.grayscale not in (True, False):
+        raise Exception("Select an appropriate grayscale option. You can type help if you don't understand.")
+    if args.crops < 0:
+        raise Exception("Select an appropriate number of random crops. You can type help if you don't understand.")
+    if args.test not in (True, False):
+        raise Exception("Select an appropriate test option. You can type help if you don't understand.")
+
     main(args)

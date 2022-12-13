@@ -12,16 +12,16 @@ import random
 
 
 # Model loading and saving
-def load_model(model, opti, args):
+def load_model(model, opti, args, weights_path):
     """
     To load pretrained model weights and optimizer states
     """
     if args.device == "cuda" and torch.cuda.is_available():
-        checkpoint = torch.load(args.weight_path, map_location=torch.device('cuda'))
+        checkpoint = torch.load(weights_path, map_location=torch.device('cuda'))
     elif args.device == "mps" and torch.backends.mps.is_available():
-        checkpoint = torch.load(args.weight_path, map_location=torch.device('mps'))
+        checkpoint = torch.load(weights_path, map_location=torch.device('mps'))
     else:
-        checkpoint = torch.load(args.weight_path, map_location=torch.device('cpu'))
+        checkpoint = torch.load(weights_path, map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['model_state_dict'])
     opti.load_state_dict(checkpoint['optimizer_state_dict'])
 
