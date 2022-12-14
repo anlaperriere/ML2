@@ -13,6 +13,9 @@ parser.add_argument('--experiment_name', type=str, default="Unidentified_Experim
                          "It will be used to create a folder to save the results.")
 parser.add_argument('--data_path', type=str, default='../data',
                     help="Specify the path of the images dataset from the current location.")
+parser.add_argument('--weights_path', type=str, default=None,
+                    help="If you want to use a beforehand trained model, specify the path to the saved weights from"
+                         "the current location.")
 # Training
 parser.add_argument('--device', type=str, default="cpu",
                     help="If you want to use a GPU, specify whether it is 'cuda' or 'mps'. Otherwise, CPU is used.")
@@ -56,9 +59,6 @@ parser.add_argument('--crops', type=int, default=0,
 # Testing
 parser.add_argument('--test', type=bool, default=True,
                     help="Specify if you want to test the model. Valid entries: True or False")
-parser.add_argument('--weights_path', type=str, default=None,
-                    help="If you want to test a beforehand trained model, specify the path to the saved weights from"
-                         "the current location.")
 
 
 def main(args):
@@ -70,6 +70,10 @@ def main(args):
     torch.backends.cudnn.benchmark = False
     torch.use_deterministic_algorithms(True)
 
+    # Experiment folder creation
+    experiment_path = os.path.join('../experiments', args.experiment_name)
+    create_folder(experiment_path)
+
     # Processing unit
     if args.device == "cuda" and torch.cuda.is_available():
         device = "cuda"
@@ -78,33 +82,35 @@ def main(args):
     else:
         device = "cpu"
 
-    # Dataset initialization
-    ratio = args.validation_ratio
+    # Datasets creation
 
-    train_dataset = datasets.DatasetTrainVal(
-        path=args.data_path,
-        set_type='train',
-        ratio=ratio,
-        rotate=args.rotation,
-        flip=args.flip,
-        grayscale=args.grayscale,
-        random_crops=args.crops,
-        resize=args.resize,
-    )
-    test_dataset = datasets.DatasetTest(path=args.data_path)
-    train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
-
-    if ratio > 0:
-        val_dataset = datasets.DatasetTrainVal(
+    if args.train:
+        train_dataset = datasets.DatasetTrainVal(
             path=args.data_path,
-            set_type='val',
-            ratio=ratio,
+            split='train',
+            val_ratio=args.validation_ratio,
             rotate=args.rotation,
             flip=args.flip,
             grayscale=args.grayscale,
-            resize=args.resize)
-        val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
+            random_crops=args.crops,
+            resize=args.resize,
+        )
+        train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
+
+        if args.validation_ratio > 0:
+            val_dataset = datasets.DatasetTrainVal(
+                path=args.data_path,
+                split='val',
+                val_ratio=args.validation_ratio,
+                rotate=args.rotation,
+                flip=args.flip,
+                grayscale=args.grayscale,
+                resize=args.resize)
+            val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
+
+    if args.test:
+        test_dataset = datasets.DatasetTest(path=args.data_path)
+        test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     # Model initialization
     if args.model == 'UNet':
@@ -117,25 +123,17 @@ def main(args):
             classes=1,
             activation="sigmoid",
         )
-    else:
-        raise Exception("The given model does not exist.")
-    
-    # Training on GPU if available
     model = model.to(device)
 
-    # Optimizer initialization
+    # Adam optimizer initialization
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
 
-    # Loading state dict for weights and optimizer state
+    # Loading previous state for model weights and optimizer
     if args.weights_path:
         load_model(model, optimizer, args)
 
-    # Scheduler initialization for reduction of learning rate during the training
+    # Plateau scheduler initialization
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-7)
-
-    # Creating the experiment path
-    experiment_path = os.path.join('../experiments', args.experiment_name)
-    create_folder(experiment_path)
 
     # Loss function initialization
     if args.loss == 'dice':
@@ -147,16 +145,21 @@ def main(args):
         ce = torch.nn.BCELoss(reduction='mean')
         ce = ce.to(device)
         criterion = lambda output_, mask_: ce(output_, mask_) + dice_loss(output_, mask_)
-    else:
-        raise Exception("The given loss function does not exist.")
 
     # Training
     if args.train:
-        best_loss = 1.0
+        print("Training started")
+
+        # To track the best model: the one leading to a decrease in validation loss
+        best_loss = 100.
         best_epoch = 0
-        best_f1_val = 0
-        best_f1_train = 0
+        best_f1_patch_val = 0.
+        best_f1_patch_train = 0.
+
+        # Iterating over all epochs for training and validation phases
         for epoch in range(args.epochs):
+
+            # Training
             model.train()
             train_loss = []
             train_f1 = []
@@ -166,103 +169,128 @@ def main(args):
                 img = img.to(device).float()
                 mask = mask.to(device)
 
+                # Zero the gradient
                 optimizer.zero_grad()
 
-                # Backward propagation
+                # Batch prediction
                 output = model(img)
                 loss = criterion(output, mask)
+
+                # Backward propagation and optimization
                 loss.backward()
                 optimizer.step()
 
+                # Adds batch statistics
                 f1_score, f1_patches = get_score(output, mask), get_score_patches(output, mask)
                 train_loss.append(loss.item())
                 train_f1.append(f1_score)
                 train_f1_patches.append(f1_patches)
-            # Saving the loss and the scores of training for this epoch
+
+            # Epoch loss and scores tracking to a csv file
+            epoch_train_loss = sum(train_loss) / len(train_loss)
+            epoch_train_f1 = sum(train_f1) / len(train_f1)
+            epoch_train_patch = sum(train_f1_patches) / len(train_f1_patches)
             save_track(
-                experiment_path,
-                args,
-                train_loss=sum(train_loss) / len(train_loss),
-                train_f1=sum(train_f1) / len(train_f1),
-                train_f1_patch=sum(train_f1_patches) / len(train_f1_patches),
+                path=experiment_path,
+                experiment=args.experiment_name,
+                train_loss=epoch_train_loss,
+                train_f1=epoch_train_f1,
+                train_f1_patch=epoch_train_patch,
             )
 
             # Validation
-            if ratio > 0:
+            if args.validation_ratio > 0:
                 model.eval()
                 val_loss = []
                 val_f1 = []
                 val_f1_patches = []
+
                 with torch.no_grad():
                     for img, mask in val_loader:
                         img = img.to(device).float()
                         mask = mask.to(device)
+
+                        # Batch prediction
                         output = model(img)
                         loss = criterion(output, mask)
+
+                        # Adds batch statistics
                         f1_score, f1_patches = get_score(output, mask), get_score_patches(output, mask)
                         val_loss.append(loss.item())
                         val_f1.append(f1_score)
                         val_f1_patches.append(f1_patches)
 
-                # Logging
-                val_loss_to_track = sum(val_loss) / len(val_loss)
-                val_f1_to_track = sum(val_f1) / len(val_f1)
-                val_f1_patches_to_track = sum(val_f1_patches) / len(val_f1_patches)
-                print('Epoch : {} | Loss = {:.4f}, F1 Score = {:.4f}, F1 Patches Score: {:.4f}'.format(
-                    epoch, val_loss_to_track, val_f1_to_track, val_f1_patches_to_track))
-
-                # Saving the loss and the scores of validation for this epoch
-                save_track(
-                    experiment_path,
-                    args,
-                    val_loss=val_loss_to_track,
-                    val_f1=val_f1_to_track,
-                    val_f1_patch=val_f1_patches_to_track,
+                # Prints
+                epoch_val_loss = sum(val_loss) / len(val_loss)
+                epoch_val_f1 = sum(val_f1) / len(val_f1)
+                epoch_val_patch = sum(val_f1_patches) / len(val_f1_patches)
+                print(
+                    'Epoch : {} | Validation loss = {:.4f}, f1-score = {:.4f}, patches f1-score: {:.4f}.'.format
+                    (epoch, epoch_val_loss, epoch_val_f1, epoch_val_patch)
                 )
 
-                # Reducing learning rate in case val_loss_to_track does not decrease based on the given patience
-                scheduler.step(val_loss_to_track)
+                # Epoch loss and scores tracking to a csv file
+                save_track(
+                    path=experiment_path,
+                    experiment=args.experiment_name,
+                    val_loss=epoch_val_loss,
+                    val_f1=epoch_val_f1,
+                    val_f1_patch=epoch_val_patch,
+                )
 
-                # Saving the weights
-                if args.save_weights and val_loss_to_track < best_loss:
-                    best_loss = val_loss_to_track
+                # Learning rate reduction
+                scheduler.step(epoch_val_loss)
+
+                # Saving the weights if the current model state led to a decrease in validation loss
+                if args.save_weights and epoch_val_loss < best_loss:
+                    best_loss = epoch_val_loss
                     best_epoch = epoch
-                    best_f1_val = val_f1_patches_to_track
-                    best_f1_train = train_f1_patches[-1]
-                    print('Model_saved at epoch {}'.format(epoch))
-                    save_model(model, optimizer, experiment_path, args)
+                    best_f1_patch_val = epoch_val_patch
+                    best_f1_patch_train = epoch_train_patch
+                    print('Model saved at epoch {}'.format(epoch))
+                    save_model(model=model, opti=optimizer, path=experiment_path, experiment=args.experiment_name)
 
+            # No validation
             else:
-                print("Epoch : {} | No validation".format(epoch))
-                save_model(model, optimizer, experiment_path, args)
+                print("Epoch : {} | Without validation.".format(epoch))
+                if args.save_weights:
+                    print('Model saved')
+                    save_model(model=model, opti=optimizer, path=experiment_path, experiment=args.experiment_name)
 
-        if ratio > 0:
-            print("The epoch with best_loss is {}, the scores are train_f1 = {:.4f}"
-                  "and val_f1= {:.4f}".format(best_epoch, best_f1_train, best_f1_val))
+        print("Training completed")
 
-    # If weights path was not specified, load the best model obtained after the current training
-    if not args.weights_path:
-        if args.train:
-            if args.save_weights:
-                load_model(model, optimizer, args, os.path.join(experiment_path, args.experiment_name + '.pt'))
-            else:
-                print("Weight path was not specified nor saved after the training."
-                      "Therefore testing is performed on the model at the last epoch, which might not be optimal")
-        else:
-            print("Weight path was not specified and no training was performed."
-                  "Therefore testing is performed but doesn't use a trained model.")
+        # Final print of the best epoch
+        if args.validation_ratio > 0:
+            print("The epoch with best validation loss is {}, with patch-wise scores: train f1-score = {:.4f}"
+                  "and val f1 score = {:.4f}.".format(best_epoch, best_f1_patch_val, best_f1_patch_train))
+
     # Testing
     if args.test:
+        # Folder to save output images and predictions
         results_path = os.path.join(experiment_path, 'results')
         create_folder(results_path)
+
+        # If training was performed, loads the best model obtained after this training
+        if args.train:
+            if args.save_weights:
+                print("Loading the best model weights obtained during this training.")
+                load_model(model, optimizer, args, os.path.join(experiment_path, args.experiment_name + '.pt'))
+            else:
+                print("Weight path was not saved after this training. Therefore testing is performed on the current"
+                      "model state, i.e. at the last epoch, which might not be optimal")
+        else:
+            if not args.weights_path:
+                print("Weight path was not specified and no training was performed."
+                      "Therefore testing is performed but doesn't use a trained model.")
+
         model.eval()
         with torch.no_grad():
             for i, img in enumerate(test_loader):
 
                 img = img.to(device).float()
-
                 output = model(img)
-                # Saving the output masks
+
+                # Outputs masks saved as images
                 save_image(output, i + 1, results_path)
                 save_image_overlap(output, img, i + 1, results_path)
 
@@ -274,12 +302,14 @@ def main(args):
             print(image_filename)
             image_filenames.append(image_filename)
         masks_to_submission(submission_filename, *image_filenames)
+        print("Testing completed.")
 
 
 if __name__ == '__main__':
 
     # Getting the arguments
     args = parser.parse_args()
+
     # Validating the arguments
     if args.device == "cuda":
         if not torch.cuda.is_available():
