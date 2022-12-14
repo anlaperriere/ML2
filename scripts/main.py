@@ -53,8 +53,8 @@ parser.add_argument('--flip', type=bool, default=False,
 parser.add_argument('--grayscale', type=bool, default=False,
                     help="Specify if you want to augment the data for the training by randomly gray-scaling images."
                          "Valid entries: True or False")
-parser.add_argument('--crops', type=int, default=0,
-                    help="Specify how many random crops will be made to augment the data for the training."
+parser.add_argument('--erase', type=int, default=0,
+                    help="Specify how many rectangles will be randomly erased to augment the data for the training."
                          "Valid entries: an integer number. If you don't want any, enter 0.")
 # Testing
 parser.add_argument('--test', type=bool, default=True,
@@ -92,7 +92,7 @@ def main(args):
             rotate=args.rotation,
             flip=args.flip,
             grayscale=args.grayscale,
-            random_crops=args.crops,
+            erase=args.erase,
             resize=args.resize,
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -130,7 +130,7 @@ def main(args):
 
     # Loading previous state for model weights and optimizer
     if args.weights_path:
-        load_model(model, optimizer, args)
+        load_model(model, optimizer, device, args.weights_path)
 
     # Plateau scheduler initialization
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-7)
@@ -248,14 +248,14 @@ def main(args):
                     best_f1_patch_val = epoch_val_patch
                     best_f1_patch_train = epoch_train_patch
                     print('Model saved at epoch {}'.format(epoch))
-                    save_model(model=model, opti=optimizer, path=experiment_path, experiment=args.experiment_name)
+                    save_model(model=model, optimizer=optimizer, path=experiment_path, experiment=args.experiment_name)
 
             # No validation
             else:
                 print("Epoch : {} | Without validation.".format(epoch))
                 if args.save_weights:
                     print('Model saved')
-                    save_model(model=model, opti=optimizer, path=experiment_path, experiment=args.experiment_name)
+                    save_model(model=model, optimizer=optimizer, path=experiment_path, experiment=args.experiment_name)
 
         print("Training completed")
 
@@ -274,7 +274,7 @@ def main(args):
         if args.train:
             if args.save_weights:
                 print("Loading the best model weights obtained during this training.")
-                load_model(model, optimizer, args, os.path.join(experiment_path, args.experiment_name + '.pt'))
+                load_model(model, optimizer, device, os.path.join(experiment_path, args.experiment_name + '.pt'))
             else:
                 print("Weight path was not saved after this training. Therefore testing is performed on the current"
                       "model state, i.e. at the last epoch, which might not be optimal")
@@ -343,8 +343,9 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate flip option. You can type help if you don't understand.")
     if args.grayscale not in (True, False):
         raise Exception("Select an appropriate grayscale option. You can type help if you don't understand.")
-    if args.crops < 0:
-        raise Exception("Select an appropriate number of random crops. You can type help if you don't understand.")
+    if args.erase < 0:
+        raise Exception("Select an appropriate number of rectangles to erase."
+                        "You can type help if you don't understand.")
     if args.test not in (True, False):
         raise Exception("Select an appropriate test option. You can type help if you don't understand.")
 

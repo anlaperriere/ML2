@@ -10,7 +10,7 @@ from helpers import random_erase
 
 class DatasetTrainVal(Dataset):
 
-    def __init__(self, path, set_type, ratio, rotate=True, flip=True, grayscale=False, random_crops=0, resize=False):
+    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
@@ -33,21 +33,19 @@ class DatasetTrainVal(Dataset):
         self.gt.sort()
 
         # Divide to validation and training set based on the value of set_type
-        idx = int(len(self.images) * ratio)
-        if set_type == 'train':
+        idx = int(len(self.images) * val_ratio)
+        if split == 'train':
             self.images = self.images[idx:]
             self.gt = self.gt[idx:]
-        elif set_type == 'val':
+        elif split == 'val':
             self.images = self.images[:idx]
             self.gt = self.gt[:idx]
-        else:
-            raise Exception("set_type is not correct")
 
-        self.set_type = set_type
+        self.set_type = split
         self.rotate = rotate
         self.flip = flip
         self.grayscale = grayscale
-        self.random_crops = random_crops
+        self.erase = erase
         self.resize = resize
 
     def transform(self, img, mask, index):
@@ -74,7 +72,7 @@ class DatasetTrainVal(Dataset):
                 img = functional.vflip(img)
                 mask = functional.vflip(mask)
 
-        # First apply a rotate based on diag_angles to extend dataset with non-horizontal and non-vertical roads and
+        # First apply a rotation based on diag_angles to extend dataset with non-horizontal and non-vertical roads and
         # then do a random rotate
         if self.rotate:
             diag_angles = [0, 15, 30, 45, 60, 75]
@@ -92,13 +90,13 @@ class DatasetTrainVal(Dataset):
         img, mask = to_tensor(img), to_tensor(mask)
           
         # Erasing random rectangles from the image
-        img = random_erase(img, n=self.random_crops, rgb='noise')
+        img = random_erase(img, n=self.erase, color_rgb='noise')
 
         return img, mask.round().long()
 
     def __getitem__(self, index):
         if self.rotate:
-            # Getting the each image 6 times, each time with a different diagonal rotation
+            # Getting each image 6 times, each time with a different diagonal rotation
             img, mask = self.images[index // 6], self.gt[index // 6]
         else:
             img, mask = self.images[index], self.gt[index]
