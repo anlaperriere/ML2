@@ -43,6 +43,8 @@ parser.add_argument('--save_weights', type=bool, default=False,
 parser.add_argument('--resize', type=int, default=None,
                     help="If you want to resize images for the training, specify the new size."
                          "Valid entries: an integer number multiple of 32")
+parser.add_argument('--pad', type=int, default=None,
+                    help="If you want to pad images for the training, specify the padding size as an int.")
 # Data augmentation
 parser.add_argument('--rotation', type=bool, default=False,
                     help="Specify if you want to augment the data for the training by doing random rotations."
@@ -94,6 +96,7 @@ def main(args):
             grayscale=args.grayscale,
             erase=args.erase,
             resize=args.resize,
+            pad=args.pad
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
 
@@ -105,7 +108,9 @@ def main(args):
                 rotate=args.rotation,
                 flip=args.flip,
                 grayscale=args.grayscale,
-                resize=args.resize)
+                resize=args.resize,
+                pad=args.pad
+            )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
 
     if args.test:

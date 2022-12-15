@@ -10,7 +10,7 @@ from helpers import random_erase
 
 class DatasetTrainVal(Dataset):
 
-    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False):
+    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False, pad=False):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
@@ -47,6 +47,7 @@ class DatasetTrainVal(Dataset):
         self.grayscale = grayscale
         self.erase = erase
         self.resize = resize
+        self.pad = pad
 
     def transform(self, img, mask, index):
         """
@@ -58,10 +59,15 @@ class DatasetTrainVal(Dataset):
             random grayscale
         """
         
-        # Resize FOR RESNET50
+        # Resize
         if self.resize:
             img = functional.resize(img, self.resize)
             mask = functional.resize(mask, self.resize)
+
+        # Padding
+        if self.pad:
+            padd = transforms.Pad(padding=self.pad, padding_mode='reflect')
+            img, mask = padd(img), padd(mask)
         
         # Do a vertical or horizontal flip randomly
         if self.flip and random.random() > 0.30:
