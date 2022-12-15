@@ -131,6 +131,7 @@ def main(args):
     # Loading previous state for model weights and optimizer
     if args.weights_path:
         load_model(model, optimizer, device, args.weights_path)
+        print("Loaded weights")
 
     # Plateau scheduler initialization
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, min_lr=1e-7)
@@ -335,8 +336,9 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate number of epochs. You can type help if you don't understand.")
     if args.save_weights not in (True, False):
         raise Exception("Select an appropriate weights saving option. You can type help if you don't understand.")
-    if args.resize < 0 or args.resize % 32 != 0:
-        raise Exception("Select an appropriate size for image resizing. You can type help if you don't understand.")
+    if args.resize:
+        if args.resize < 0 or args.resize % 32 != 0:
+            raise Exception("Select an appropriate size for image resizing. You can type help if you don't understand.")
     if args.rotation not in (True, False):
         raise Exception("Select an appropriate rotation option. You can type help if you don't understand.")
     if args.flip not in (True, False):
