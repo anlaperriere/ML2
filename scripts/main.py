@@ -320,7 +320,7 @@ if __name__ == '__main__':
             print("You asked for GPU but it is not available. CPU is used instead.")
     if args.device not in ("cuda", "mps", "cpu"):
         raise Exception("Select an appropriate processing unit. You can type help if you don't understand.")
-    if args.model not in ("UNet", "Resnet50"):
+    if args.model not in ("UNet", "ResNet50"):
         raise Exception("Select an appropriate model. You can type help if you don't understand.")
     if args.train not in (True, False):
         raise Exception("Select an appropriate train option. You can type help if you don't understand.")
