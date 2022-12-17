@@ -105,7 +105,7 @@ class DatasetTrainVal(Dataset):
         # Erasing random rectangles from the image
         img = random_erase(img, n=self.erase, color_rgb='noise')
 
-        return img, mask.round().long()
+        return img, mask.round()
 
     def __getitem__(self, index):
         if self.rotate:
