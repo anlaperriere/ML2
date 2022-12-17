@@ -98,7 +98,7 @@ def main(args):
             grayscale=args.grayscale,
             erase=args.erase,
             resize=args.resize,
-            pad=args.pad
+            pad=args.pad,
             preprocess=args.standard
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -112,7 +112,7 @@ def main(args):
                 flip=args.flip,
                 grayscale=args.grayscale,
                 resize=args.resize,
-                pad=args.pad
+                pad=args.pad,
                 preprocess=args.standard
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)

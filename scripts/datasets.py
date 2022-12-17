@@ -1,5 +1,7 @@
 import os
 import random
+import torch
+import segmentation_models_pytorch as smp
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 import torchvision.transforms.functional as functional
@@ -96,7 +98,7 @@ class DatasetTrainVal(Dataset):
         to_tensor = transforms.ToTensor()
         img, mask = to_tensor(img), to_tensor(mask)
         
-        if preprocess:
+        if self.preprocess:
             params = smp.encoders.get_preprocessing_params("resnet50", "imagenet")
             img = (img - torch.tensor(params["mean"]).view(1, 3, 1, 1)) / torch.tensor(params["std"]).view(1, 3, 1, 1)
           
@@ -148,7 +150,7 @@ class DatasetTest(Dataset):
 
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         img = transforms.ToTensor()(img)
-        if preprocess:
+        if self.preprocess:
             params = smp.encoders.get_preprocessing_params("resnet50", "imagenet")
             img = (img - torch.tensor(params["mean"]).view(1, 3, 1, 1)) / torch.tensor(params["std"]).view(1, 3, 1, 1)
 
