@@ -106,15 +106,16 @@ def create_folder(path):
     print("Folder created: {}".format(str(path)))
 
 
+# Train and validation csv headers
+cols = {'train': {'loss': [], 'f1-score': [], 'f1_patch': []},
+        'val': {'loss': [], 'f1-score': [], 'f1_patch': []}}
+
+
 def save_track(path, experiment, train_loss=None, train_f1=None, train_f1_patch=None,
                val_loss=None, val_f1=None, val_f1_patch=None):
     """
     To save the loss and f1-scores at current epoch in a csv file
     """
-    # Train and validation csv headers
-    cols = {'train': {'loss': [], 'f1-score': [], 'f1_patch': []},
-            'val': {'loss': [], 'f1-score': [], 'f1_patch': []}}
-
     if train_loss:
         cols['train']['loss'].append(train_loss)
     if train_f1:

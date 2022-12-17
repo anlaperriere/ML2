@@ -1,5 +1,6 @@
 import argparse
 import datasets
+import ast
 import segmentation_models_pytorch as smp
 from model import UNet
 from torch.utils.data import DataLoader
@@ -22,7 +23,7 @@ parser.add_argument('--device', type=str, default="cpu",
 
 parser.add_argument('--model', type=str, default="UNet",
                     help="Specify the model. Valid entries: 'UNet' or 'ResNet50'")
-parser.add_argument('--train', type=bool, default=True,
+parser.add_argument('--train', type=ast.literal_eval, default=True,
                     help="Specify if you want to train the model. Valid entries: True or False")
 parser.add_argument('--validation_ratio', type=float, default=0,
                     help="Specify the ratio of data used for validation compared to the whole dataset."
@@ -36,7 +37,7 @@ parser.add_argument('--loss', type=str, default="dice",
                          "Valid entries: 'dice' or 'cross entropy' or 'dice + cross entropy'")
 parser.add_argument('--epochs', type=int, default=100,
                     help="Specify the number of epochs the model will be trained on.")
-parser.add_argument('--save_weights', type=bool, default=False,
+parser.add_argument('--save_weights', type=ast.literal_eval, default=False,
                     help="Specify if you want to save the weights of the trained model. They are progressively saved"
                          "only for the epochs where the model achieves a better validation losses."
                          "Valid entries: True or False")
@@ -45,23 +46,23 @@ parser.add_argument('--resize', type=int, default=None,
                          "Valid entries: an integer number multiple of 32")
 parser.add_argument('--pad', type=int, default=None,
                     help="If you want to pad images for the training, specify the padding size as an int.")
-parser.add_argument('--standard', type=bool, default=False,
+parser.add_argument('--standard', type=ast.literal_eval, default=False,
                     help="If you want to standardize images for pretrained ResNet50, enter True.")
 # Data augmentation
-parser.add_argument('--rotation', type=bool, default=False,
+parser.add_argument('--rotation', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by doing random rotations."
                          "Valid entries: True or False")
-parser.add_argument('--flip', type=bool, default=False,
+parser.add_argument('--flip', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by doing random horizontal"
                          "and vertical flips. Valid entries: True or False")
-parser.add_argument('--grayscale', type=bool, default=False,
+parser.add_argument('--grayscale', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by randomly gray-scaling images."
                          "Valid entries: True or False")
 parser.add_argument('--erase', type=int, default=0,
                     help="Specify how many rectangles will be randomly erased to augment the data for the training."
                          "Valid entries: an integer number. If you don't want any, enter 0.")
 # Testing
-parser.add_argument('--test', type=bool, default=True,
+parser.add_argument('--test', type=ast.literal_eval, default=True,
                     help="Specify if you want to test the model. Valid entries: True or False")
 
 
@@ -323,10 +324,10 @@ if __name__ == '__main__':
     # Validating the arguments
     if args.device == "cuda":
         if not torch.cuda.is_available():
-            print("You asked for GPU but it is not available. CPU is used instead.")
+            print("You asked for CUDA GPU but it is not available. CPU is used instead.")
     if args.device == "mps":
         if not torch.backends.mps.is_available():
-            print("You asked for GPU but it is not available. CPU is used instead.")
+            print("You asked for MPS GPU but it is not available. CPU is used instead.")
     if args.device not in ("cuda", "mps", "cpu"):
         raise Exception("Select an appropriate processing unit. You can type help if you don't understand.")
     if args.model not in ("UNet", "ResNet50"):
