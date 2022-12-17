@@ -45,6 +45,8 @@ parser.add_argument('--resize', type=int, default=None,
                          "Valid entries: an integer number multiple of 32")
 parser.add_argument('--pad', type=int, default=None,
                     help="If you want to pad images for the training, specify the padding size as an int.")
+parser.add_argument('--standard', type=bool, default=False,
+                    help="If you want to standardize images for pretrained ResNet50, enter True.")
 # Data augmentation
 parser.add_argument('--rotation', type=bool, default=False,
                     help="Specify if you want to augment the data for the training by doing random rotations."
@@ -97,6 +99,7 @@ def main(args):
             erase=args.erase,
             resize=args.resize,
             pad=args.pad
+            preprocess=args.standard
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
 
@@ -110,11 +113,12 @@ def main(args):
                 grayscale=args.grayscale,
                 resize=args.resize,
                 pad=args.pad
+                preprocess=args.standard
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
 
     if args.test:
-        test_dataset = datasets.DatasetTest(path=args.data_path)
+        test_dataset = datasets.DatasetTest(path=args.data_path, preprocess=args.standard)
         test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     # Model initialization

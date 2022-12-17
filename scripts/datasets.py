@@ -10,7 +10,7 @@ from helpers import random_erase
 
 class DatasetTrainVal(Dataset):
 
-    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False, pad=False):
+    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False, pad=False, preprocess=False):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
@@ -48,6 +48,7 @@ class DatasetTrainVal(Dataset):
         self.erase = erase
         self.resize = resize
         self.pad = pad
+        self.preprocess = preprocess
 
     def transform(self, img, mask, index):
         """
@@ -94,6 +95,10 @@ class DatasetTrainVal(Dataset):
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         to_tensor = transforms.ToTensor()
         img, mask = to_tensor(img), to_tensor(mask)
+        
+        if preprocess:
+            params = smp.encoders.get_preprocessing_params("resnet50", "imagenet")
+            img = (img - torch.tensor(params["mean"]).view(1, 3, 1, 1)) / torch.tensor(params["std"]).view(1, 3, 1, 1)
           
         # Erasing random rectangles from the image
         img = random_erase(img, n=self.erase, color_rgb='noise')
@@ -124,7 +129,7 @@ class DatasetTrainVal(Dataset):
 
 class DatasetTest(Dataset):
 
-    def __init__(self, path):
+    def __init__(self, path, preprocess=False):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
@@ -135,6 +140,7 @@ class DatasetTest(Dataset):
             if os.path.isdir(os.path.join(images_path, item))
         ]
         self.images.sort(key=lambda x: int(os.path.split(x)[-1][5:-4]))
+        self.preprocess=preprocess
 
     def __getitem__(self, index):
         img = self.images[index]
@@ -142,6 +148,9 @@ class DatasetTest(Dataset):
 
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         img = transforms.ToTensor()(img)
+        if preprocess:
+            params = smp.encoders.get_preprocessing_params("resnet50", "imagenet")
+            img = (img - torch.tensor(params["mean"]).view(1, 3, 1, 1)) / torch.tensor(params["std"]).view(1, 3, 1, 1)
 
         return img
 
