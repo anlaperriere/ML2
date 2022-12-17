@@ -100,7 +100,10 @@ class DatasetTrainVal(Dataset):
         
         if self.preprocess:
             params = smp.encoders.get_preprocessing_params("resnet50", "imagenet")
-            img = (img - torch.tensor(params["mean"]).view(1, 3, 1, 1)) / torch.tensor(params["std"]).view(1, 3, 1, 1)
+            img = (img - torch.tensor(params["mean"]).view(3, 1, 1)) / torch.tensor(params["std"]).view(3, 1, 1)
+            print(img.shape)
+        else:
+            print(img.shape)
           
         # Erasing random rectangles from the image
         img = random_erase(img, n=self.erase, color_rgb='noise')
