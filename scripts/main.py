@@ -273,7 +273,7 @@ def main(args):
         # Final print of the best epoch
         if args.validation_ratio > 0:
             print("The epoch with best validation loss is {}, with patch-wise scores: train f1-score = {:.4f}"
-                  "and val f1 score = {:.4f}.".format(best_epoch, best_f1_patch_val, best_f1_patch_train))
+                  " and val f1 score = {:.4f}.".format(best_epoch, best_f1_patch_val, best_f1_patch_train))
 
     # Testing
     if args.test:

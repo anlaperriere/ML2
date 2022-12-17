@@ -14,13 +14,14 @@ def track_plot(args):
     """
     To plot the loss and f1-scores from the csv files saved by save_track()
     """
-    df = pd.read_csv(args.path + args.experiment + "/" + args.experiment + "_train_tracking.csv")
+    df = pd.read_csv(args.path + args.experiment + "/" + args.experiment + "_val_tracking.csv")
     fig, ax = plt.subplots()
-    ax.plot(df['loss'], label='train loss')
-    ax.plot(df['f1_patch'], label='train f1-score patch')
+    ax.plot(df['loss'], label='val loss')
+    ax.plot(df['f1_patch'], label='val f1-score patch')
+    plt.ylim(0.2, 0.3)
     ax.legend()
     plt.grid()
-    plt.title("Training loss and f1-score of experiment " + args.experiment)
+    plt.title("Validation loss and f1-score of experiment " + args.experiment)
     plt.xlabel("Epoch")
     plt.ylabel("Loss and f1-score")
     #plt.savefig(args.path + args.experiment + "/" + args.experiment + "_train_tracking.png")
