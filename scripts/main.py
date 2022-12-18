@@ -41,13 +41,8 @@ parser.add_argument('--save_weights', type=ast.literal_eval, default=False,
                     help="Specify if you want to save the weights of the trained model. They are progressively saved"
                          "only for the epochs where the model achieves a better validation losses."
                          "Valid entries: True or False")
-parser.add_argument('--resize', type=int, default=None,
-                    help="If you want to resize images for the training, specify the new size."
-                         "Valid entries: an integer number multiple of 32")
 parser.add_argument('--pad', type=int, default=None,
                     help="If you want to pad images for the training, specify the padding size as an int.")
-parser.add_argument('--standard', type=ast.literal_eval, default=False,
-                    help="If you want to standardize images for pretrained ResNet50, enter True.")
 # Data augmentation
 parser.add_argument('--rotation', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by doing random rotations."
@@ -98,9 +93,7 @@ def main(args):
             flip=args.flip,
             grayscale=args.grayscale,
             erase=args.erase,
-            resize=args.resize,
-            pad=args.pad,
-            preprocess=args.standard
+            pad=args.pad
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
 
@@ -112,14 +105,12 @@ def main(args):
                 rotate=args.rotation,
                 flip=args.flip,
                 grayscale=args.grayscale,
-                resize=args.resize,
-                pad=args.pad,
-                preprocess=args.standard
+                pad=args.pad
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
 
     if args.test:
-        test_dataset = datasets.DatasetTest(path=args.data_path, preprocess=args.standard)
+        test_dataset = datasets.DatasetTest(path=args.data_path)
         test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
     # Model initialization
@@ -346,9 +337,6 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate number of epochs. You can type help if you don't understand.")
     if args.save_weights not in (True, False):
         raise Exception("Select an appropriate weights saving option. You can type help if you don't understand.")
-    if args.resize:
-        if args.resize < 0 or args.resize % 32 != 0:
-            raise Exception("Select an appropriate size for image resizing. You can type help if you don't understand.")
     if args.rotation not in (True, False):
         raise Exception("Select an appropriate rotation option. You can type help if you don't understand.")
     if args.flip not in (True, False):
