@@ -53,6 +53,9 @@ parser.add_argument('--flip', type=ast.literal_eval, default=False,
 parser.add_argument('--grayscale', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by randomly gray-scaling images."
                          "Valid entries: True or False")
+parser.add_argument('--bright_change', type=ast.literal_eval, default=False,
+                    help="Specify if you want to augment the data for the training by randomly changing the brightness of the images."
+                         "Valid entries: True or False")
 parser.add_argument('--erase', type=int, default=0,
                     help="Specify how many rectangles will be randomly erased to augment the data for the training."
                          "Valid entries: an integer number. If you don't want any, enter 0.")
@@ -92,6 +95,7 @@ def main(args):
             rotate=args.rotation,
             flip=args.flip,
             grayscale=args.grayscale,
+            bright_change=args.bright_change,
             erase=args.erase,
             pad=args.pad
         )
@@ -105,6 +109,7 @@ def main(args):
                 rotate=args.rotation,
                 flip=args.flip,
                 grayscale=args.grayscale,
+                bright_change=args.bright_change,
                 pad=args.pad
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
@@ -343,6 +348,8 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate flip option. You can type help if you don't understand.")
     if args.grayscale not in (True, False):
         raise Exception("Select an appropriate grayscale option. You can type help if you don't understand.")
+    if args.bright_change not in (True, False):
+        raise Exception("Select an appropriate brightness change option. You can type help if you don't understand.")
     if args.erase < 0:
         raise Exception("Select an appropriate number of rectangles to erase."
                         "You can type help if you don't understand.")
