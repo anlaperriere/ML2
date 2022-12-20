@@ -95,7 +95,6 @@ def main(args):
             rotate=args.rotation,
             flip=args.flip,
             grayscale=args.grayscale,
-            bright_change=args.bright_change,
             erase=args.erase,
             resize = resize
         )
@@ -109,7 +108,6 @@ def main(args):
                 rotate=args.rotation,
                 flip=args.flip,
                 grayscale=args.grayscale,
-                bright_change=args.bright_change,
                 resize = resize
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
