@@ -12,7 +12,7 @@ from helpers import random_erase
 
 class DatasetTrainVal(Dataset):
 
-    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, pad=False, bright_change=False):
+    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
@@ -48,8 +48,7 @@ class DatasetTrainVal(Dataset):
         self.flip = flip
         self.grayscale = grayscale
         self.erase = erase
-        self.pad = pad
-        self.bright_change = bright_change
+        self.resize = resize
 
     def transform(self, img, mask, index):
         """
@@ -61,10 +60,10 @@ class DatasetTrainVal(Dataset):
             random grayscale
         """
         
-        # Padding
-        if self.pad:
-            padd = transforms.Pad(padding=self.pad, padding_mode='reflect')
-            img, mask = padd(img), padd(mask)
+        # Resize
+        if self.resize:
+            img = functional.resize(img, self.resize)
+            mask = functional.resize(mask, self.resize)
         
         # Do a vertical or horizontal flip randomly
         if self.flip and random.random() > 0.30:
@@ -91,12 +90,7 @@ class DatasetTrainVal(Dataset):
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         to_tensor = transforms.ToTensor()
         img, mask = to_tensor(img), to_tensor(mask)
-        
-        if self.bright_change:
-            # Random Brightess change: brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness]
-            color_jitter = transforms.ColorJitter(brightness=0.5)
-            img = color_jitter(img)
-                  
+                          
         # Erasing random rectangles from the image
         img = random_erase(img, n=self.erase, color_rgb='noise')
 

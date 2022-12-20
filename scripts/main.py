@@ -8,6 +8,7 @@ from helpers import *
 
 # Arguments provided by user
 parser = argparse.ArgumentParser()
+
 # Paths
 parser.add_argument('--experiment_name', type=str, default="Unidentified_Experiment",
                     help="Specify the name of the current experiment."
@@ -30,6 +31,8 @@ parser.add_argument('--validation_ratio', type=float, default=0,
                          "If 0 then all the images are used for training. Valid entries: a number between 0 and 0.5")
 parser.add_argument('--batch_size', type=int, default=8,
                     help="Specify the batch size used for training. Valid entries: an integer number")
+parser.add_argument('--opti', type=str, default="Adam",
+                    help="Specify the optimizer. Valid entries: 'Adam' or 'Adamax'")
 parser.add_argument('--lr', type=float, default=0.001,
                     help="Specify the learning rate value. Valid entries: a number between 0 and 1")
 parser.add_argument('--loss', type=str, default="dice",
@@ -41,20 +44,15 @@ parser.add_argument('--save_weights', type=ast.literal_eval, default=False,
                     help="Specify if you want to save the weights of the trained model. They are progressively saved"
                          "only for the epochs where the model achieves a better validation losses."
                          "Valid entries: True or False")
-parser.add_argument('--pad', type=int, default=None,
-                    help="If you want to pad images for the training, specify the padding size as an int.")
 # Data augmentation
-parser.add_argument('--rotation', type=ast.literal_eval, default=False,
-                    help="Specify if you want to augment the data for the training by doing random rotations."
-                         "Valid entries: True or False")
 parser.add_argument('--flip', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by doing random horizontal"
                          "and vertical flips. Valid entries: True or False")
+parser.add_argument('--rotation', type=ast.literal_eval, default=False,
+                    help="Specify if you want to augment the data for the training by doing random rotations."
+                         "Valid entries: True or False")
 parser.add_argument('--grayscale', type=ast.literal_eval, default=False,
                     help="Specify if you want to augment the data for the training by randomly gray-scaling images."
-                         "Valid entries: True or False")
-parser.add_argument('--bright_change', type=ast.literal_eval, default=False,
-                    help="Specify if you want to augment the data for the training by randomly changing the brightness of the images."
                          "Valid entries: True or False")
 parser.add_argument('--erase', type=int, default=0,
                     help="Specify how many rectangles will be randomly erased to augment the data for the training."
@@ -86,6 +84,8 @@ def main(args):
         device = "cpu"
 
     # Datasets creation
+    if args.model == "ResNet50":
+        resize = 416      
 
     if args.train:
         train_dataset = datasets.DatasetTrainVal(
@@ -97,7 +97,7 @@ def main(args):
             grayscale=args.grayscale,
             bright_change=args.bright_change,
             erase=args.erase,
-            pad=args.pad
+            resize = resize
         )
         train_loader = DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
 
@@ -110,7 +110,7 @@ def main(args):
                 flip=args.flip,
                 grayscale=args.grayscale,
                 bright_change=args.bright_change,
-                pad=args.pad
+                resize = resize
             )
             val_loader = DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=True)
 
@@ -132,7 +132,10 @@ def main(args):
     model = model.to(device)
 
     # Adam optimizer initialization
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
+    if args.opti == "Adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
+    elif args.opti == "Adamax":
+        optimizer = torch.optim.Adamax(model.parameters(), lr=args.lr)
 
     # Loading previous state for model weights and optimizer
     if args.weights_path:
@@ -336,6 +339,8 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate batch size. You can type help if you don't understand.")
     if args.lr > 1 or args.lr < 0:
         raise Exception("Select an appropriate learning rate. You can type help if you don't understand.")
+    if args.opti not in ('Adam', 'Adamax'):
+        raise Exception("Select an appropriate optimizer. You can type help if you don't understand.")
     if args.loss not in ('dice', 'cross entropy', 'dice + cross entropy'):
         raise Exception("Select an appropriate loss function. You can type help if you don't understand.")
     if args.epochs < 0:
@@ -348,8 +353,6 @@ if __name__ == '__main__':
         raise Exception("Select an appropriate flip option. You can type help if you don't understand.")
     if args.grayscale not in (True, False):
         raise Exception("Select an appropriate grayscale option. You can type help if you don't understand.")
-    if args.bright_change not in (True, False):
-        raise Exception("Select an appropriate brightness change option. You can type help if you don't understand.")
     if args.erase < 0:
         raise Exception("Select an appropriate number of rectangles to erase."
                         "You can type help if you don't understand.")
