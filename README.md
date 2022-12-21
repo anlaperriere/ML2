@@ -62,7 +62,8 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --data_path '../data' --t
 or on Windows:
 
 ```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --data_path '../data' --train True --test True --validation_ratio 0.2 --device "cuda"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --optimizer Adam
+
+python main.py --data_path '../data' --train True --test True --validation_ratio 0.2 --device "cuda"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --optimizer Adam
 ```
 
 Once the computation is done, the prediction and the models are stored in the `experiment_name` folder.
