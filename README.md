@@ -35,7 +35,7 @@ pip install -r requirements_windows_cuda.txt
 
 | Flag                  | Type             | Default                 | Description                                                                     | 
 | --------------------- |------------------|-------------------------|---------------------------------------------------------------------------------|
-| data_path             | str              | '../data'               | Dataset path.                                                                   |
+| data_path             | str              | "../data"               | Dataset path.                                                                   |
 | train                 | ast.literal_eval | True                    | Train the model if true                                                         |
 | test                  | ast.literal_eval | True                    | Make prediction on test set if true                                             |
 | validation_ratio      | float            | 0                       | Set validation ratio                                                            |
