@@ -129,12 +129,12 @@ def main(args):
         )
     model = model.to(device)
 
-    # Adam optimizer initialization
+    # Optimizer initialization
     if args.opti == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, amsgrad=True)
     elif args.opti == "Adamax":
         optimizer = torch.optim.Adamax(model.parameters(), lr=args.lr)
-
+    
     # Loading previous state for model weights and optimizer
     if args.weights_path:
         load_model(model, optimizer, device, args.weights_path)
