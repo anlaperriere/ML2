@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--experiment_name', type=str, default="Unidentified_Experiment",
                     help="Specify the name of the current experiment."
                          "It will be used to create a folder to save the results.")
-parser.add_argument('--data_path', type=str, default='../data',
+parser.add_argument('--data_path', type=str, default="../data",
                     help="Specify the path of the images dataset from the current location.")
 parser.add_argument('--weights_path', type=str, default=None,
                     help="If you want to use a beforehand trained model, specify the path to the saved weights from"
@@ -266,6 +266,7 @@ def main(args):
                     save_model(model=model, optimizer=optimizer, path=experiment_path, experiment=args.experiment_name)
 
         print("Training completed")
+        performance_plot(args.experiment_name)
 
         # Final print of the best epoch
         if args.validation_ratio > 0:

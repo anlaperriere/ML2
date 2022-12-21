@@ -8,6 +8,7 @@ import matplotlib.image as mpimg
 import PIL.Image as Image
 import torch
 import torch.nn.functional as functional
+import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
 
@@ -235,6 +236,33 @@ def get_score_patches(output, mask, threshold=foreground_threshold):
     f_score = f1_score(mask_, labels_, average='macro', zero_division=0)
 
     return f_score
+
+
+def performance_plot(experiment_name):
+    """
+    To plot the loss and f1-scores from the csv files saved by save_track()
+    """
+    df_train = pd.read_csv("../experiments/" + experiment_name + "/" + experiment_name + "_train_tracking.csv")
+    df_val = pd.read_csv("../experiments/" + experiment_name + "/" + experiment_name + "_val_tracking.csv")
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    ax1.plot(df_train['loss'], label='train loss')
+    ax2.plot(df_train['f1_patch'], label='train patch F1-score')
+    ax1.plot(df_val['loss'], label='val loss')
+    ax2.plot(df_val['f1_patch'], label='val patch F1-score')
+    ax1.legend()
+    ax2.legend()
+    ax1.set_title("Training and validation loss")
+    ax2.set_title("Training and validation F1-score")
+    ax1.grid()
+    ax2.grid()
+    ax1.set_xlabel("Epochs")
+    ax2.set_xlabel("Epochs")
+    ax1.set_ylabel("Loss")
+    ax2.set_ylabel("F1-score")
+    fig.suptitle("Training and validation loss and F1-score for experiment " + experiment_name)
+    plt.savefig("../experiments/" + experiment_name + "/" + experiment_name + "_performances.png")
+    print("Performance plot of experiment " + experiment_name + " saved in experiments/" + experiment_name + "/\n\t Press exit to close the plot...")
+    plt.show()
 
 
 # ------------------------- Tools for submission formatting -------------------------
