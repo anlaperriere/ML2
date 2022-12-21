@@ -89,3 +89,12 @@ python main.py --data_path "../data" --model "ResNet50" --train False --validati
 * Salomé BAUP
 * Tanguy DESJARDIN
 * Antoine LAPERRIERE
+
+# Citation
+@misc{MMLS,
+  Author = {Salomé BAUP, Tanguy DESJARDIN \& Antoine LAPERRIERE},
+  Title = {EPFL CS-433, Road segmentation project - magical_mandrills},
+  Year = {2022},
+  Publisher = {GitHub},
+  Journal = {GitHub repository},
+  Howpublished = {\url{https://github.com/CS-433/ml-project-2-magical_mandrills}}
