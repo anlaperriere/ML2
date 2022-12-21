@@ -56,14 +56,14 @@ pip install -r requirements_windows_cuda.txt
 \
 To retrain the best model we obtained you can run the following command on mac0S:
 ```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --data_path '../data' --train True --test True --validation_ratio 0.2 --device "mps"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --optimizer Adam
+PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --data_path "../data" --train True --test True --validation_ratio 0.2 --device "mps"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --opti "Adam"
 ```
 
 or on Windows:
 
 ```bash
 
-python main.py --data_path '../data' --train True --test True --validation_ratio 0.2 --device "cuda"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --optimizer Adam
+python main.py --data_path "../data" --train True --test True --validation_ratio 0.2 --device "cuda"  --lr 0.001 --experiment_name "R_K" --loss "dice" --save_weights True --epochs 100 --model "ResNet50" --flip True --rotation True --grayscale True --erase 5 --batch_size 32 --opti "Adam"
 ```
 
 Once the computation is done, the prediction and the models are stored in the `experiment_name` folder.
@@ -74,13 +74,13 @@ To obtain the predictions that make our best predictions, you can use a pretrain
 
 To obtain the result with a pretrained model you can run the following command on mac0S:
 ```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --data_path '../data' --model "ResNet50" --train False --validation_ratio 0 --test True --device "mps" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
+PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --data_path "../data" --model "ResNet50" --train False --validation_ratio 0 --test True --device "mps" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
 ```
 
 or on windows:
 
 ```bash
-python main.py --data_path '../data' --model "ResNet50" --train False --validation_ratio 0 --test True --device "cuda" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
+python main.py --data_path "../data" --model "ResNet50" --train False --validation_ratio 0 --test True --device "cuda" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
 ```
 
 
