@@ -85,13 +85,13 @@ def save_model(model, optimizer, path, experiment):
 
 
 def dice_loss(output, mask, smooth=1.0):
-    
+
     """
     Dice loss derived from
     M. Buda, A. Saha, and M. A. Mazurowski,
     “Association of genomic subtypes of lower-grade gliomas with shape features automatically extracted by a deep learning algorithm”,
     2019
-    
+
     Inputs:
         output (torch tensor): model prediction
         mask (torch tensor): ground truth

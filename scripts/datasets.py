@@ -93,7 +93,7 @@ class DatasetTrainVal(Dataset):
             angle = random.choice([0, 90, 180, 270])
             img = functional.rotate(img, angle)
             mask = functional.rotate(mask, angle)
-        
+
         # Random grayscaling
         if self.grayscale and random.random() > 0.7:
             img = functional.rgb_to_grayscale(img, num_output_channels=3)
@@ -118,7 +118,7 @@ class DatasetTrainVal(Dataset):
         img = Image.open(img)
         mask = Image.open(mask)
 
-        # Data augmentation 
+        # Data augmentation
         img, mask = self.transform(img, mask, index)
 
         return img, mask
@@ -136,7 +136,7 @@ class DatasetTest(Dataset):
 
         # Path to satellite image obtention
         images_path = os.path.join(path, "test_set_images")
-        
+
         # File paths listing and sorting
         self.images = [
             os.path.join(images_path, item, item + ".png")
@@ -147,7 +147,7 @@ class DatasetTest(Dataset):
 
     def __getitem__(self, index):
         img = self.images[index]
-        
+
         # Satellite image reading using PIL
         img = Image.open(img)
 
