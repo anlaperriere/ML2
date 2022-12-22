@@ -5,9 +5,9 @@ This repositery contains the work achieved by Salomé BAUP, Tanguy DESJARDIN and
 \
 The goal of the project is to identify roads on satellite images extracted from google maps using a machine learning model. The training dataset consists of images and their corresponding groundtruth where the road corresponds to white pixels and the rest is black.
 <p align="center">
-<img src="data/test_set_images/test_42/test_42.png" alt="classdiagram"  width="300" title="hover text">
-<img src="data/Images_readme/UNet.png"  alt="classdiagram" width="300" >
-<img src="data/Images_readme/ResNet50.png"  alt="classdiagram" width="300" >
+<img src="data/test_set_images/test_42/test_42.png" alt="classdiagram"  width="200" title="hover text">
+<img src="data/Images_readme/UNet.png"  alt="classdiagram" width="200" >
+<img src="data/Images_readme/ResNet50.png"  alt="classdiagram" width="200" >
 <figcaption align = "center"><b>Fig.1 - Testing image and prediction (UNet on the left, ResNet on the right)</b></figcaption>
 </p>
 
@@ -54,6 +54,16 @@ Move into scripts folder:
 ```bash
 cd scripts
 ```
+
+The `scripts` folder contains the following files:
+* main.py: contains the code to train and test the model
+* datasets.py: contains the code to load the dataset and augment it
+* model.py: contains the code to load the models (UNet and ResNet50)
+* helper.py: contains the code to compute the metrics and to save the predictions
+* performance.py: contains the code to compute the performance of the model
+\
+
+The main.py script contains the code to train and test the model. It will use all the other scripts to get predictions. The arguments are the following:
 
 | Flag                  | Type             | Default                 | Description                                                                     | 
 | --------------------- |------------------|-------------------------|---------------------------------------------------------------------------------|
