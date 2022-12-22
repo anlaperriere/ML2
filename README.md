@@ -27,7 +27,7 @@ If you are using MacOS with an ARM architecture run:
 pip install -r requirements_mac_m1.txt
 ```
 
-If you are using Windows/Linux with a Nvidia GPU run:
+If you are using Windows with a Nvidia GPU run:
 
 ```bash
 pip install -r requirements_windows_cuda.txt
