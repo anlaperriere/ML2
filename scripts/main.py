@@ -160,6 +160,7 @@ def main(args):
         resize = 416
 
     if args.train:
+        # Training dataset
         train_dataset = datasets.DatasetTrainVal(
             path=args.data_path,
             split="train",
@@ -175,6 +176,7 @@ def main(args):
         )
 
         if args.validation_ratio > 0:
+            # Validation dataset
             val_dataset = datasets.DatasetTrainVal(
                 path=args.data_path,
                 split="val",
@@ -189,6 +191,7 @@ def main(args):
             )
 
     if args.test:
+        # Test dataset
         test_dataset = datasets.DatasetTest(path=args.data_path)
         test_loader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
 
@@ -234,7 +237,7 @@ def main(args):
             output_, mask_
         )
 
-    # Training
+    # Training and validating the model
     if args.train:
         print("Training started")
 
@@ -372,7 +375,7 @@ def main(args):
                 )
             )
 
-    # Testing
+    # Testing the model
     if args.test:
         # Folder to save output images and predictions
         results_path = os.path.join(experiment_path, "results")
