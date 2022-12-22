@@ -3,6 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from helpers import performance_plot
 
+"""
+This script is used to plot the performance of a given experiment (loss and f1-score) via the command line.
+"""
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
