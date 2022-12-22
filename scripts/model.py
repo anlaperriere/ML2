@@ -3,7 +3,14 @@ import torch.nn as nn
 from collections import OrderedDict
 
 
-# Unet model inspired by https://github.com/mateuszbuda/brain-segmentation-pytorch/blob/master/unet.py
+"""
+U-Net model inspired by
+M. Buda, A. Saha, and M. A. Mazurowski,
+“Association of genomic subtypes of lower-grade gliomas with shape features automatically extracted by a deep learning algorithm”,
+2019
+"""
+
+
 class UNet(nn.Module):
     def __init__(self, input_channels=3, output_channels=1, init_features=32):
         super(UNet, self).__init__()
