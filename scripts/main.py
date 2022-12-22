@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--experiment_name",
     type=str,
-    default="Unidentified_Experiment",
+    default="Best_model",
     help="Specify the name of the current experiment."
     "It will be used to create a folder to save the results.",
 )
@@ -26,7 +26,7 @@ parser.add_argument(
 parser.add_argument(
     "--weights_path",
     type=str,
-    default=None,
+    default="../experiments/R_K/R_K.pt",
     help="If you want to use a beforehand trained model, specify the path to the saved weights from"
     "the current location.",
 )
@@ -41,26 +41,26 @@ parser.add_argument(
 parser.add_argument(
     "--model",
     type=str,
-    default="UNet",
+    default="ResNet50",
     help="Specify the model. Valid entries: 'UNet' or 'ResNet50'",
 )
 parser.add_argument(
     "--train",
     type=ast.literal_eval,
-    default=True,
+    default=False,
     help="Specify if you want to train the model. Valid entries: True or False",
 )
 parser.add_argument(
     "--validation_ratio",
     type=float,
-    default=0,
+    default=0.2,
     help="Specify the ratio of data used for validation compared to the whole dataset."
     "If 0 then all the images are used for training. Valid entries: a number between 0 and 0.5",
 )
 parser.add_argument(
     "--batch_size",
     type=int,
-    default=8,
+    default=32,
     help="Specify the batch size used for training. Valid entries: an integer number",
 )
 parser.add_argument(
@@ -91,7 +91,7 @@ parser.add_argument(
 parser.add_argument(
     "--save_weights",
     type=ast.literal_eval,
-    default=False,
+    default=True,
     help="Specify if you want to save the weights of the trained model. They are progressively saved"
     "only for the epochs where the model achieves a better validation losses."
     "Valid entries: True or False",
@@ -100,28 +100,28 @@ parser.add_argument(
 parser.add_argument(
     "--flip",
     type=ast.literal_eval,
-    default=False,
+    default=True,
     help="Specify if you want to augment the data for the training by doing random horizontal"
     "and vertical flips. Valid entries: True or False",
 )
 parser.add_argument(
     "--rotation",
     type=ast.literal_eval,
-    default=False,
+    default=True,
     help="Specify if you want to augment the data for the training by doing random rotations."
     "Valid entries: True or False",
 )
 parser.add_argument(
     "--grayscale",
     type=ast.literal_eval,
-    default=False,
+    default=True,
     help="Specify if you want to augment the data for the training by randomly gray-scaling images."
     "Valid entries: True or False",
 )
 parser.add_argument(
     "--erase",
     type=int,
-    default=0,
+    default=5,
     help="Specify how many rectangles will be randomly erased to augment the data for the training."
     "Valid entries: an integer number. If you don't want any, enter 0.",
 )
