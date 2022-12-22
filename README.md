@@ -62,7 +62,6 @@ The `scripts` folder contains the following files:
 * helper.py: contains the code to compute the metrics and to save the predictions
 * performance.py: contains the code to compute the performance of the model
 \
-
 The main.py script contains the code to train and test the model. It will use all the other scripts to get predictions. The arguments are the following:
 
 | Flag                  | Type             | Default                 | Description                                                                     | 
