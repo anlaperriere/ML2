@@ -94,7 +94,7 @@ To obtain the predictions achieved with our best model, you can use our pretrain
 
 From mac0S and windows:
 ```bash
-python run.py --device "mps"
+python run.py
 ```
 
 Once the computation is done, the prediction and this best models parameters are stored in the `Best_model` folder.
