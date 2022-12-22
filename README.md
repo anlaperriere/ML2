@@ -53,7 +53,7 @@ pip install -r requirements_windows_cuda.txt
 Move into scripts folder:
 ```bash
 cd scripts
-
+```
 
 | Flag                  | Type             | Default                 | Description                                                                     | 
 | --------------------- |------------------|-------------------------|---------------------------------------------------------------------------------|
