@@ -423,6 +423,7 @@ def main(args):
             image_filenames.append(image_filename)
         masks_to_submission(submission_filename, *image_filenames)
         print("Testing completed.")
+        print("Submission file created in folder experiments/Best_model/results.")
 
 
 if __name__ == "__main__":
