@@ -58,9 +58,9 @@ cd scripts
 The `scripts` folder contains the following files:
 * main.py: contains the code to train and test the model
 * datasets.py: contains the code to load the dataset and augment it
-* model.py: contains the code to load the models (UNet and ResNet50)
+* model.py: contains the code for UNet model
 * helper.py: contains the code to compute the metrics and to save the predictions
-* performance.py: contains the code to compute the performance of the model
+* performance.py: contains the code to compute the performances of the model
 
 
 
