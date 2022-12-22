@@ -14,7 +14,7 @@ The goal of the project is to identify roads on satellite images extracted from 
 The train and test datasets are stored in the `data/` folder.
 
 ## Environnement setup
-In order to reproduce our prediction, you can install the required libraries using the following command:
+In order to reproduce our predictions, you can install the required libraries using the following command:
 \
 (note that the trainings have been performed on macOS with a M1 Max GPU using python 3.9.15 and on Windows with a Nvidia GPU using python 3.9.13)
 
