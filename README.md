@@ -78,7 +78,7 @@ The main.py script contains the code to train and test the model. It will use al
 | weights_path          | str              | "../experiments/R_K/R_K.pt"| Name of the experiment (Important: do not put figures/numbers in the name)    |
 | loss                  | str              | "dice"                     | Choose the type of loss (dice, BCE or diceBCE)                                |
 | save_weights          | ast.literal_eval | True                       | Save weights after every epoch if True                                        |
-| epoch                 | int              | 100                        | Set the number ofepochs                                                       |
+| epochs                | int              | 100                        | Set the number ofepochs                                                       |
 | model                 | str              | "ResNet50"                 | Set the model on which to train (UNet or ResNet50)                            |
 | flip                  | ast.literal_eval | True                       | Flip images if true (horizontally and vertically)                             |
 | rotation              | ast.literal_eval | True                       | Rotate images if true                                                         |
