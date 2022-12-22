@@ -261,7 +261,7 @@ def performance_plot(experiment_name):
     ax2.set_ylabel("F1-score")
     fig.suptitle("Training and validation loss and F1-score for experiment " + experiment_name)
     plt.savefig("../experiments/" + experiment_name + "/" + experiment_name + "_performances.png")
-    print("Performance plot of experiment " + experiment_name + " saved in experiments/" + experiment_name + "/\n\t Press exit to close the plot...")
+    print("Performance plot of experiment " + experiment_name + " saved in experiments/" + experiment_name + "/\n\t Close plot window to continue...")
     plt.show()
 
 
