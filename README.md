@@ -1,7 +1,7 @@
 # Road Segmentation project
 
 
-This repository contains the work achieved by Salomé BAUP, Tanguy DESJARDIN and Antoine LAPERRIERE during the fall 2022 semester for the second project of the CS-433 Machine Learning course of EPFL.
+This repository contains the work achieved by Salomé BAUP, Tanguy DESJARDIN and Antoine LAPERRIERE during the fall 2022 semester for the second project of the CS-433 EPFL Machine Learning course.
 \
 The goal of the project is to identify roads on satellite images extracted from google maps using a machine learning model. The training dataset consists of images and their corresponding groundtruth where the road corresponds to white pixels and the rest is black.
 <p align="center">
