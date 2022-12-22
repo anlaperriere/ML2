@@ -101,9 +101,11 @@ From windows with CUDA:
 python main.py --device "cuda"
 ```
 
+Once the computation is done, the prediction and this best models parameters are stored in the `Best_model` folder.
 ## Retrain our best model
 \
 To retrain the best model we obtained you can run the following command on mac0S:
+\
 (note that the training took approximately 2h30 on a M1 max 32GC 32 GB RAM MacBook Pro)
 
 ```bash
@@ -111,6 +113,8 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --train True --device "mp
 ```
 
 or on Windows:
+\
+(you may get a cuda memory allocation error if your GPU isn't strong enough)
 ```bash
 python main.py --train True --device "cuda"
 ```
