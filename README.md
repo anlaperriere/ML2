@@ -23,6 +23,21 @@ conda create --name road_segmentation python=3.9.15
 conda activate road_segmentation   
 ```
 
+Head to the folder you want to contain this GitHub repository:
+```bash
+cd my/folder/path
+```
+
+Clone this GitHub repository:
+```bash
+git clone https://github.com/CS-433/ml-project-2-magical_mandrills/
+```
+
+Move into the cloned repo:
+```bash
+cd ml-project-2-magical_mandrills/
+```
+
 If you are using MacOS with an ARM architecture run:
 
 ```bash
@@ -34,6 +49,11 @@ If you are using Windows with a Nvidia GPU run:
 ```bash
 pip install -r requirements_windows_cuda.txt
 ```
+
+Move into scripts folder:
+```bash
+cd scripts
+
 
 | Flag                  | Type             | Default                 | Description                                                                     | 
 | --------------------- |------------------|-------------------------|---------------------------------------------------------------------------------|
