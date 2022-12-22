@@ -259,6 +259,7 @@ def performance_plot(experiment_name):
     """
     To plot the loss and f1-scores from the csv files saved by save_track()
     """
+    # Loading the saved csv files
     df_train = pd.read_csv(
         "../experiments/"
         + experiment_name
@@ -273,13 +274,17 @@ def performance_plot(experiment_name):
         + experiment_name
         + "_val_tracking.csv"
     )
+    # Plotting
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    # Losses
     ax1.plot(df_train["loss"], label="train loss")
     ax2.plot(df_train["f1_patch"], label="train patch F1-score")
+    ##F1-scores
     ax1.plot(df_val["loss"], label="val loss")
     ax2.plot(df_val["f1_patch"], label="val patch F1-score")
     ax1.legend()
     ax2.legend()
+    # Plot settings
     ax1.set_title("Training and validation loss")
     ax2.set_title("Training and validation F1-score")
     ax1.grid()
@@ -291,6 +296,7 @@ def performance_plot(experiment_name):
     fig.suptitle(
         "Training and validation loss and F1-score for experiment " + experiment_name
     )
+    # Saving
     plt.savefig(
         "../experiments/"
         + experiment_name
@@ -298,6 +304,7 @@ def performance_plot(experiment_name):
         + experiment_name
         + "_performances.png"
     )
+    ## Logs
     print(
         "Performance plot of experiment "
         + experiment_name
