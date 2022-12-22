@@ -14,7 +14,8 @@ from sklearn.metrics import f1_score
 
 # ------------------------- Tools for image modifications -------------------------
 
-def random_erase(img, n=1, s_range=(0, 0.1), color_rgb=(.5, .5, .5)):
+
+def random_erase(img, n=1, s_range=(0, 0.1), color_rgb=(0.5, 0.5, 0.5)):
     """
     Inputs:
         img (torch tensor): image on which rectangles will be erased
@@ -33,7 +34,7 @@ def random_erase(img, n=1, s_range=(0, 0.1), color_rgb=(.5, .5, .5)):
         h = round(img.shape[1] * (s_range[0] + random.random() * s_range[1]))
         w = round(img.shape[2] * (s_range[0] + random.random() * s_range[1]))
 
-        if color_rgb == 'noise':
+        if color_rgb == "noise":
             # Fill with random noise
             for i in range(loc[0] - h, loc[0]):
                 for j in range(loc[1] - w, loc[1]):
@@ -42,41 +43,46 @@ def random_erase(img, n=1, s_range=(0, 0.1), color_rgb=(.5, .5, .5)):
                     img[2, i, j] = random.random()
         else:
             # Fill with color
-            img[0, loc[0] - h:loc[0], loc[1] - w:loc[1]] = color_rgb[0]
-            img[1, loc[0] - h:loc[0], loc[1] - w:loc[1]] = color_rgb[1]
-            img[2, loc[0] - h:loc[0], loc[1] - w:loc[1]] = color_rgb[2]
+            img[0, loc[0] - h : loc[0], loc[1] - w : loc[1]] = color_rgb[0]
+            img[1, loc[0] - h : loc[0], loc[1] - w : loc[1]] = color_rgb[1]
+            img[2, loc[0] - h : loc[0], loc[1] - w : loc[1]] = color_rgb[2]
 
     return img
 
 
 # ------------------------- Tools for weights loading and saving -------------------------
 
+
 def load_model(model, optimizer, device, weights_path):
     """
     To load pretrained model weights and optimizer states
     """
     if device == "cuda" and torch.cuda.is_available():
-        checkpoint = torch.load(weights_path, map_location=torch.device('cuda'))
+        checkpoint = torch.load(weights_path, map_location=torch.device("cuda"))
     elif device == "mps" and torch.backends.mps.is_available():
-        checkpoint = torch.load(weights_path, map_location=torch.device('mps'))
+        checkpoint = torch.load(weights_path, map_location=torch.device("mps"))
     else:
-        checkpoint = torch.load(weights_path, map_location=torch.device('cpu'))
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        checkpoint = torch.load(weights_path, map_location=torch.device("cpu"))
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
 
 def save_model(model, optimizer, path, experiment):
     """
     To save trained model weights and optimizer states
     """
-    save_path = os.path.join(path, experiment + '.pt')
-    torch.save({
-        "model_state_dict": model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-    }, save_path)
+    save_path = os.path.join(path, experiment + ".pt")
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        },
+        save_path,
+    )
 
 
 # ------------------------- Tools for dice loss computation -------------------------
+
 
 def dice_loss(output, mask, smooth=1.0):
     # Dice loss derived from https://github.com/mateuszbuda/brain-segmentation-pytorch/blob/master/loss.py
@@ -92,11 +98,12 @@ def dice_loss(output, mask, smooth=1.0):
     mask = mask[:, 0].contiguous().view(-1)
     intersection = (output * mask).sum()
     # Dice similarity coefficient
-    dsc = (2. * intersection + smooth) / (output.sum() + mask.sum() + smooth)
-    return 1. - dsc
+    dsc = (2.0 * intersection + smooth) / (output.sum() + mask.sum() + smooth)
+    return 1.0 - dsc
 
 
 # ------------------------- Tools for results saving -------------------------
+
 
 def create_folder(path):
     """
@@ -108,33 +115,43 @@ def create_folder(path):
 
 
 # Train and validation csv headers
-cols = {'train': {'loss': [], 'f1-score': [], 'f1_patch': []},
-        'val': {'loss': [], 'f1-score': [], 'f1_patch': []}}
+cols = {
+    "train": {"loss": [], "f1-score": [], "f1_patch": []},
+    "val": {"loss": [], "f1-score": [], "f1_patch": []},
+}
 
 
-def save_track(path, experiment, train_loss=None, train_f1=None, train_f1_patch=None,
-               val_loss=None, val_f1=None, val_f1_patch=None):
+def save_track(
+    path,
+    experiment,
+    train_loss=None,
+    train_f1=None,
+    train_f1_patch=None,
+    val_loss=None,
+    val_f1=None,
+    val_f1_patch=None,
+):
     """
     To save the loss and f1-scores at current epoch in a csv file
     """
     if train_loss:
-        cols['train']['loss'].append(train_loss)
+        cols["train"]["loss"].append(train_loss)
     if train_f1:
-        cols['train']['f1-score'].append(train_f1)
+        cols["train"]["f1-score"].append(train_f1)
     if train_f1_patch:
-        cols['train']['f1_patch'].append(train_f1_patch)
+        cols["train"]["f1_patch"].append(train_f1_patch)
 
-    df = pd.DataFrame.from_dict(cols['train'])
+    df = pd.DataFrame.from_dict(cols["train"])
     df.to_csv(os.path.join(path, experiment + "_train_tracking.csv"))
 
     if val_loss:
-        cols['val']['loss'].append(val_loss)
+        cols["val"]["loss"].append(val_loss)
     if val_f1:
-        cols['val']['f1-score'].append(val_f1)
+        cols["val"]["f1-score"].append(val_f1)
     if val_f1_patch:
-        cols['val']['f1_patch'].append(val_f1_patch)
+        cols["val"]["f1_patch"].append(val_f1_patch)
 
-    df = pd.DataFrame.from_dict(cols['val'])
+    df = pd.DataFrame.from_dict(cols["val"])
     df.to_csv(os.path.join(path, experiment + "_val_tracking.csv"))
 
 
@@ -150,7 +167,7 @@ def save_image(output, idx, path, threshold=proba_threshold):
     # Convert to image
     img = Image.fromarray((labels * 255).astype(np.uint8))
     # Save image
-    img.save(os.path.join(path, 'satImage_{:03d}.png'.format(idx)))
+    img.save(os.path.join(path, "satImage_{:03d}.png".format(idx)))
 
 
 def save_image_overlap(output, img, idx, path, threshold=proba_threshold):
@@ -162,10 +179,10 @@ def save_image_overlap(output, img, idx, path, threshold=proba_threshold):
     # Overlap image with road prediction
     img = img.cpu().numpy().squeeze() * 255
     img[2, labels] = 150
-    img = np.transpose(img, (1, 2, 0)).astype('uint8')
-    img = Image.fromarray(img.astype(np.uint8), 'RGB')
+    img = np.transpose(img, (1, 2, 0)).astype("uint8")
+    img = Image.fromarray(img.astype(np.uint8), "RGB")
     # Save image
-    img.save(os.path.join(path, 'satImage_overlap_{:03d}.png'.format(idx)))
+    img.save(os.path.join(path, "satImage_overlap_{:03d}.png".format(idx)))
 
 
 # ------------------------- Tools for patch-wise and pixel-wise evaluation -------------------------
@@ -186,7 +203,7 @@ def get_score(output, mask, threshold=proba_threshold):
     mask = np.reshape(mask.cpu().numpy(), (mask.shape[0], -1))
     labels = np.reshape(labels.cpu().numpy(), (labels.shape[0], -1))
     # Compute f1-score
-    f_score = f1_score(mask, labels, average='macro', zero_division=0)
+    f_score = f1_score(mask, labels, average="macro", zero_division=0)
 
     return f_score
 
@@ -233,7 +250,7 @@ def get_score_patches(output, mask, threshold=foreground_threshold):
     mask_ = np.reshape(mask_labels.cpu().numpy(), (mask.shape[0], -1))
     labels_ = np.reshape(output_labels.cpu().numpy(), (output.shape[0], -1))
     # Compute f1_score
-    f_score = f1_score(mask_, labels_, average='macro', zero_division=0)
+    f_score = f1_score(mask_, labels_, average="macro", zero_division=0)
 
     return f_score
 
@@ -242,13 +259,25 @@ def performance_plot(experiment_name):
     """
     To plot the loss and f1-scores from the csv files saved by save_track()
     """
-    df_train = pd.read_csv("../experiments/" + experiment_name + "/" + experiment_name + "_train_tracking.csv")
-    df_val = pd.read_csv("../experiments/" + experiment_name + "/" + experiment_name + "_val_tracking.csv")
+    df_train = pd.read_csv(
+        "../experiments/"
+        + experiment_name
+        + "/"
+        + experiment_name
+        + "_train_tracking.csv"
+    )
+    df_val = pd.read_csv(
+        "../experiments/"
+        + experiment_name
+        + "/"
+        + experiment_name
+        + "_val_tracking.csv"
+    )
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-    ax1.plot(df_train['loss'], label='train loss')
-    ax2.plot(df_train['f1_patch'], label='train patch F1-score')
-    ax1.plot(df_val['loss'], label='val loss')
-    ax2.plot(df_val['f1_patch'], label='val patch F1-score')
+    ax1.plot(df_train["loss"], label="train loss")
+    ax2.plot(df_train["f1_patch"], label="train patch F1-score")
+    ax1.plot(df_val["loss"], label="val loss")
+    ax2.plot(df_val["f1_patch"], label="val patch F1-score")
     ax1.legend()
     ax2.legend()
     ax1.set_title("Training and validation loss")
@@ -259,9 +288,23 @@ def performance_plot(experiment_name):
     ax2.set_xlabel("Epochs")
     ax1.set_ylabel("Loss")
     ax2.set_ylabel("F1-score")
-    fig.suptitle("Training and validation loss and F1-score for experiment " + experiment_name)
-    plt.savefig("../experiments/" + experiment_name + "/" + experiment_name + "_performances.png")
-    print("Performance plot of experiment " + experiment_name + " saved in experiments/" + experiment_name + "/\n\t Close plot window to continue...")
+    fig.suptitle(
+        "Training and validation loss and F1-score for experiment " + experiment_name
+    )
+    plt.savefig(
+        "../experiments/"
+        + experiment_name
+        + "/"
+        + experiment_name
+        + "_performances.png"
+    )
+    print(
+        "Performance plot of experiment "
+        + experiment_name
+        + " saved in experiments/"
+        + experiment_name
+        + "/\n\t Close plot window to continue..."
+    )
     plt.show()
 
 
@@ -291,7 +334,7 @@ def mask_to_submission_strings(image_filename):
     for j in range(0, im.shape[1], patch_size):
         for i in range(0, im.shape[0], patch_size):
             # Cut image in patches
-            patch = im[i:i + patch_size, j:j + patch_size]
+            patch = im[i : i + patch_size, j : j + patch_size]
             # Prediction label for each patch
             label = patch_to_label(patch)
             yield "{:03d}_{}_{},{}".format(img_number, j, i, label)
@@ -301,7 +344,7 @@ def masks_to_submission(submission_filename, *image_filenames):
     """
     To convert images into a submission csv file
     """
-    with open(submission_filename, 'w') as f:
-        f.write('id,prediction\n')
+    with open(submission_filename, "w") as f:
+        f.write("id,prediction\n")
         for fn in image_filenames[0:]:
-            f.writelines('{}\n'.format(s) for s in mask_to_submission_strings(fn))
+            f.writelines("{}\n".format(s) for s in mask_to_submission_strings(fn))

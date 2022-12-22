@@ -11,35 +11,42 @@ from helpers import random_erase
 
 
 class DatasetTrainVal(Dataset):
-
-    def __init__(self, path, split, val_ratio, rotate=False, flip=False, grayscale=False, erase=0, resize=False):
+    def __init__(
+        self,
+        path,
+        split,
+        val_ratio,
+        rotate=False,
+        flip=False,
+        grayscale=False,
+        erase=0,
+        resize=False,
+    ):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
-        images_path = Path(path) / 'training' / 'images'
-        gt_path = Path(path) / 'training' / 'groundtruth'
+        images_path = Path(path) / "training" / "images"
+        gt_path = Path(path) / "training" / "groundtruth"
 
         # Listing the images and ground truth file paths
         self.images = [
             images_path / item
             for item in os.listdir(images_path)
-            if item.endswith('.png')
+            if item.endswith(".png")
         ]
         self.images.sort()
 
         self.gt = [
-            gt_path / item
-            for item in os.listdir(gt_path)
-            if item.endswith('.png')
+            gt_path / item for item in os.listdir(gt_path) if item.endswith(".png")
         ]
         self.gt.sort()
 
         # Divide to validation and training set based on the value of set_type
         idx = int(len(self.images) * val_ratio)
-        if split == 'train':
+        if split == "train":
             self.images = self.images[idx:]
             self.gt = self.gt[idx:]
-        elif split == 'val':
+        elif split == "val":
             self.images = self.images[:idx]
             self.gt = self.gt[:idx]
 
@@ -54,17 +61,17 @@ class DatasetTrainVal(Dataset):
         """
         Augmenting the dataset by doing
             random horizontal flip
-            random vertical flip 
+            random vertical flip
             random rotations
             random erasing
             random grayscale
         """
-        
+
         # Resize
         if self.resize:
             img = functional.resize(img, self.resize)
             mask = functional.resize(mask, self.resize)
-        
+
         # Do a vertical or horizontal flip randomly
         if self.flip and random.random() > 0.30:
             if random.random() > 0.5:
@@ -83,16 +90,16 @@ class DatasetTrainVal(Dataset):
             angle = random.choice([0, 90, 180, 270])
             img = functional.rotate(img, angle)
             mask = functional.rotate(mask, angle)
-            
+
         if self.grayscale and random.random() > 0.7:
             img = functional.rgb_to_grayscale(img, num_output_channels=3)
 
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         to_tensor = transforms.ToTensor()
         img, mask = to_tensor(img), to_tensor(mask)
-                          
+
         # Erasing random rectangles from the image
-        img = random_erase(img, n=self.erase, color_rgb='noise')
+        img = random_erase(img, n=self.erase, color_rgb="noise")
 
         return img, mask.round()
 
@@ -119,14 +126,13 @@ class DatasetTrainVal(Dataset):
 
 
 class DatasetTest(Dataset):
-
     def __init__(self, path):
         super(Dataset, self).__init__()
 
         # Get image and ground truth paths
-        images_path = os.path.join(path, 'test_set_images')
+        images_path = os.path.join(path, "test_set_images")
         self.images = [
-            os.path.join(images_path, item, item + '.png')
+            os.path.join(images_path, item, item + ".png")
             for item in os.listdir(images_path)
             if os.path.isdir(os.path.join(images_path, item))
         ]
@@ -138,7 +144,7 @@ class DatasetTest(Dataset):
 
         # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
         img = transforms.ToTensor()(img)
-    
+
         return img
 
     def __len__(self):
