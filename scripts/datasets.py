@@ -9,6 +9,11 @@ from PIL import Image
 from pathlib import Path
 from helpers import random_erase
 
+"""
+Script to create training, validation and test datasets and to perform data augmentation.
+Classes inheriting from the torch Dataset class are created.
+"""
+
 
 class DatasetTrainVal(Dataset):
     def __init__(
@@ -24,24 +29,23 @@ class DatasetTrainVal(Dataset):
     ):
         super(Dataset, self).__init__()
 
-        # Get image and ground truth paths
+        # Paths to satellite image and ground truth obtention
         images_path = Path(path) / "training" / "images"
         gt_path = Path(path) / "training" / "groundtruth"
 
-        # Listing the images and ground truth file paths
+        # File paths listing and sorting
         self.images = [
             images_path / item
             for item in os.listdir(images_path)
             if item.endswith(".png")
         ]
         self.images.sort()
-
         self.gt = [
             gt_path / item for item in os.listdir(gt_path) if item.endswith(".png")
         ]
         self.gt.sort()
 
-        # Divide to validation and training set based on the value of set_type
+        # Division of the dataset into training and validation sets based on split and validation ratio
         idx = int(len(self.images) * val_ratio)
         if split == "train":
             self.images = self.images[idx:]
@@ -59,20 +63,20 @@ class DatasetTrainVal(Dataset):
 
     def transform(self, img, mask, index):
         """
-        Augmenting the dataset by doing
+        To augment the dataset by doing
             random horizontal flip
             random vertical flip
             random rotations
+            random grayscaling
             random erasing
-            random grayscale
         """
 
-        # Resize
+        # Resizing if neeeded
         if self.resize:
             img = functional.resize(img, self.resize)
             mask = functional.resize(mask, self.resize)
 
-        # Do a vertical or horizontal flip randomly
+        # Random vertical or horizontal flips
         if self.flip and random.random() > 0.30:
             if random.random() > 0.5:
                 img = functional.hflip(img)
@@ -81,8 +85,7 @@ class DatasetTrainVal(Dataset):
                 img = functional.vflip(img)
                 mask = functional.vflip(mask)
 
-        # First apply a rotation based on diag_angles to extend dataset with non-horizontal and non-vertical roads and
-        # then do a random rotate
+        # 6 rotations per image based on diagonal angles followed by a random rotation
         if self.rotate:
             diag_angles = [0, 15, 30, 45, 60, 75]
             img = functional.rotate(img, diag_angles[index % 6])
@@ -90,37 +93,39 @@ class DatasetTrainVal(Dataset):
             angle = random.choice([0, 90, 180, 270])
             img = functional.rotate(img, angle)
             mask = functional.rotate(mask, angle)
-
+        
+        # Random grayscaling
         if self.grayscale and random.random() > 0.7:
             img = functional.rgb_to_grayscale(img, num_output_channels=3)
 
-        # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
+        # PIL image conversion to torch tensor in the range [0., 1.]
         to_tensor = transforms.ToTensor()
         img, mask = to_tensor(img), to_tensor(mask)
 
-        # Erasing random rectangles from the image
+        # Random rectangles erasing
         img = random_erase(img, n=self.erase, color_rgb="noise")
 
         return img, mask.round()
 
     def __getitem__(self, index):
         if self.rotate:
-            # Getting each image 6 times, each time with a different diagonal rotation
+            # Each image is loaded 6 times to then perform 6 different diagonal angles rotations
             img, mask = self.images[index // 6], self.gt[index // 6]
         else:
             img, mask = self.images[index], self.gt[index]
 
-        # Read image and ground truth files
+        # Satellite image and ground truth reading using PIL
         img = Image.open(img)
         mask = Image.open(mask)
 
-        # Apply dataset augmentation transforms if needed
+        # Data augmentation 
         img, mask = self.transform(img, mask, index)
 
         return img, mask
 
     def __len__(self):
         if self.rotate:
+            # Each image has been loaded 6 times
             return len(self.images) * 6
         return len(self.images)
 
@@ -129,8 +134,10 @@ class DatasetTest(Dataset):
     def __init__(self, path):
         super(Dataset, self).__init__()
 
-        # Get image and ground truth paths
+        # Path to satellite image obtention
         images_path = os.path.join(path, "test_set_images")
+        
+        # File paths listing and sorting
         self.images = [
             os.path.join(images_path, item, item + ".png")
             for item in os.listdir(images_path)
@@ -140,9 +147,11 @@ class DatasetTest(Dataset):
 
     def __getitem__(self, index):
         img = self.images[index]
+        
+        # Satellite image reading using PIL
         img = Image.open(img)
 
-        # Transforming from PIL type to torch.tensor and normalizing the data to range [0, 1]
+        # PIL image conversion to torch tensor in the range [0., 1.]
         img = transforms.ToTensor()(img)
 
         return img
