@@ -89,7 +89,7 @@ The main.py script contains the code to train and test the model. It will use al
 \
 ## Test our best model
 \
-To obtain the predictions achieved with our best model, you can use our pretrained models. The best pretrained model is stored on this [Google Drive](https://drive.google.com/drive/folders/1DNUKSZgf0mBA7StU-iCSydfxbGH_1LL4?usp=sharing) folder. The model is located in `R_K` folder. You can download the `R_K.pt` file and place it in your local `experiments/R_K` folder. Then run the following command:
+To obtain the predictions achieved with our best model, you can use our pretrained models. The best pretrained model is stored on this [Google Drive](https://drive.google.com/drive/folders/1DNUKSZgf0mBA7StU-iCSydfxbGH_1LL4?usp=sharing). The model is located in `R_K` folder. You can download the `R_K.pt` file and place it in your local `experiments/R_K` folder. Then run the following command:
 
 From mac0S with MPS:
 ```bash
