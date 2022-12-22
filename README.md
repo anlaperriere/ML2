@@ -12,7 +12,7 @@ The goal of the project is to identify roads on satellite images extracted from 
 </p>
 
 The train and test datasets are stored in the `data/` folder.
-\
+
 ## Environnement setup
 In order to reproduce our prediction, you can install the required libraries using the following command:
 \
