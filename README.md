@@ -6,9 +6,9 @@ This repositery contains the work achieved by Salomé BAUP, Tanguy DESJARDIN and
 The goal of the project is to identify roads on satellite images extracted from google maps using a machine learning model. The training dataset consists of images and their corresponding groundtruth where the road corresponds to white pixels and the rest is black.
 <p align="center">
 <img src="data/test_set_images/test_42/test_42.png" alt="classdiagram"  width="200" title="hover text">
-<img src="data/Images_readme/UNet.png"  alt="classdiagram" width="200" >
+<img src="data/Images_readme/UNET.png"  alt="classdiagram" width="200" >
 <img src="data/Images_readme/ResNet.png"  alt="classdiagram" width="200" >
-<figcaption align = "center"><b>Fig.1 - Testing image and prediction (UNet on the left, ResNet on the right)</b></figcaption>
+<figcaption align = "center"><b>Fig.1 - Testing image and prediction (UNet on the left, UNet with ResNet encoder on the right)</b></figcaption>
 </p>
 
 The train and test datasets are stored in the `data/` folder.
@@ -58,9 +58,9 @@ cd scripts
 The `scripts` folder contains the following files:
 * main.py: contains the code to train and test the model
 * datasets.py: contains the code to load the dataset and augment it
-* model.py: contains the code to load the models (UNet and ResNet50)
+* model.py: contains the code for UNet model
 * helper.py: contains the code to compute the metrics and to save the predictions
-* performance.py: contains the code to compute the performance of the model
+* performance.py: contains the code to compute the performances of the model
 
 
 
@@ -118,7 +118,10 @@ or on windows:
 python main.py --data_path "../data" --model "ResNet50" --train False --test True --device "cuda" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
 ```
 
-
+If you want to evaluate the performances (loss and F1-score) of a given pretrained experiment, load the complete folder (R_x or U_x) from the Google Drive into `experiments/` and execute the performance script with:
+```bash
+python performance.py --experiment "R_x"
+```
 
 # Contributors
 * Salomé BAUP
