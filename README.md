@@ -74,13 +74,13 @@ To obtain the predictions that make our best predictions, you can use a pretrain
 
 To obtain the result with a pretrained model you can run the following command on mac0S:
 ```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --data_path "../data" --model "ResNet50" --train False --validation_ratio 0 --test True --device "mps" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
+PYTORCH_ENABLE_MPS_FALLBACK=1 python main.py --data_path "../data" --model "ResNet50" --train False --test True --device "mps" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
 ```
 
 or on windows:
 
 ```bash
-python main.py --data_path "../data" --model "ResNet50" --train False --validation_ratio 0 --test True --device "cuda" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
+python main.py --data_path "../data" --model "ResNet50" --train False --test True --device "cuda" --weights_path "../experiments/R_K/R_K.pt" --experiment_name "R_K"
 ```
 
 
