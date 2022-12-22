@@ -112,7 +112,7 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --train True --device "mp
 
 or on Windows:
 ```bash
-python main.py --train True --device "mps"
+python main.py --train True --device "cuda"
 ```
 
 Once the computation is done, the prediction and this best models parameters are stored in the `Best_model` folder.
@@ -126,7 +126,7 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 python -W ignore main.py --experiment_name "my_own
 
 Or for windows:
 ```bash
-python main.py --experiment_name "my_own_model" --data_path "../data" --save_weights True --device "mps" --model "ResNet50" --train True --test True --validation_ratio 0.2 --epochs 50 --lr 0.0001 --loss "cross entropy" --opti "Adam" --flip True --rotation True --grayscale True --erase 5 --save_weights True --batch_size 16
+python main.py --experiment_name "my_own_model" --data_path "../data" --save_weights True --device "cuda" --model "ResNet50" --train True --test True --validation_ratio 0.2 --epochs 50 --lr 0.0001 --loss "cross entropy" --opti "Adam" --flip True --rotation True --grayscale True --erase 5 --save_weights True --batch_size 16
 ```
 
 ## Evaluate performances of a pretrained model
