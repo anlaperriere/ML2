@@ -6,7 +6,7 @@ This repositery contains the work achieved by Salomé BAUP, Tanguy DESJARDIN and
 The goal of the project is to identify roads on satellite images extracted from google maps using a machine learning model. The training dataset consists of images and their corresponding groundtruth where the road corresponds to white pixels and the rest is black.
 <p align="center">
 <img src="data/test_set_images/test_42/test_42.png" alt="classdiagram"  width="200" title="hover text">
-<img src="data/Images_readme/UNet.png"  alt="classdiagram" width="200" >
+<img src="data/Images_readme/UNET.png"  alt="classdiagram" width="200" >
 <img src="data/Images_readme/ResNet.png"  alt="classdiagram" width="200" >
 <figcaption align = "center"><b>Fig.1 - Testing image and prediction (UNet on the left, ResNet on the right)</b></figcaption>
 </p>
